@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3VEXXCRYPT — Key Admin</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+    margin:0;
+    min-height:100vh;
+    background:#050505;
+    color:#fff;
+    font-family:Arial,sans-serif;
+}
+.container{
+    width:min(950px,94%);
+    margin:40px auto;
+}
+.header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:25px;
+}
+.logo{
+    font-size:25px;
+    font-weight:800;
+}
+.badge{
+    padding:8px 12px;
+    border-radius:8px;
+    background:#111;
+    color:#aaa;
+    font-size:12px;
+}
+.card{
+    background:#0c0c0c;
+    border:1px solid #1c1c1c;
+    border-radius:14px;
+    padding:20px;
+    margin-bottom:18px;
+}
+h2{
+    margin-top:0;
+    font-size:17px;
+}
+.row{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+}
+select,input,button{
+    height:42px;
+    border-radius:8px;
+    border:1px solid #252525;
+    background:#141414;
+    color:#fff;
+    padding:0 13px;
+}
+input{flex:1;min-width:180px}
+button{
+    cursor:pointer;
+    font-weight:bold;
+}
+button:hover{
+    background:#202020;
+}
+.generate{
+    background:#fff;
+    color:#000;
+}
+.generate:hover{
+    background:#ddd;
+}
+.key{
+    font-family:monospace;
+    font-size:15px;
+    letter-spacing:1px;
+}
+.keyrow{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:15px;
+    padding:15px 0;
+    border-bottom:1px solid #191919;
+}
+.info{
+    color:#888;
+    font-size:12px;
+    margin-top:5px;
+}
+.status{
+    font-size:12px;
+    margin-bottom:15px;
+}
+.active{color:#5cff85}
+.revoked{color:#ff5757}
+.actions{
+    display:flex;
+    gap:7px;
+    flex-wrap:wrap;
+}
+.danger{
+    color:#ff5757;
+}
+.hidden{display:none}
+@media(max-width:600px){
+    .keyrow{
+        align-items:flex-start;
+        flex-direction:column;
+    }
+    .actions{width:100%}
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="header">
+        <div class="logo">3VEXXCRYPT</div>
+        <div class="badge">KEY ADMIN</div>
+    </div>
+
+    <div class="card">
+        <h2>Generar Key</h2>
+
+        <div class="row">
+            <select id="duration">
+                <option value="1">1 día</option>
+                <option value="7">7 días</option>
+                <option value="30" selected>30 días</option>
+                <option value="0">Permanente</option>
+            </select>
+
+            <input
+                id="amount"
+                type="number"
+                min="1"
+                max="100"
+                value="1"
+                placeholder="Cantidad"
+            >
+
+            <button class="generate" onclick="generateKeys()">
+                + GENERAR KEY
+            </button>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Keys</h2>
+
+        <div id="status" class="status">
+            Conecta el Worker para cargar las keys.
+        </div>
+
+        <div id="keys"></div>
+    </div>
+
+</div>
+
+<script>
+
+/*
+==================================================
+CONFIGURACIÓN
+==================================================
+
+Cuando tengamos el Cloudflare Worker,
+cambia esta dirección por la URL de tu Worker.
+
+Ejemplo:
+
+const API_URL = "https://3vexxcrypt-keysystem.tu-subdominio.workers.dev";
+*/
+
+const API_URL = "https://TU-WORKER.workers.dev";
+
+/*
+El token NO debe publicarse en GitHub.
+Por eso la página pedirá el token al abrirse.
+*/
+
+let ADMIN_TOKEN = prompt("Introduce tu Admin Token:");
+
+const statusBox = document.getElementById("status");
+const keysBox = document.getElementById("keys");
+
+function setStatus(text){
+    statusBox.textContent = text;
+}
+
+async function api(path, options = {}){
+
+    const response = await fetch(API_URL + path,{
+        ...options,
+        headers:{
+            "Content-Type":"application/json",
+            "Authorization":"Bearer " + ADMIN_TOKEN,
+            ...(options.headers || {})
+        }
+    });
+
+    const data = await response.json().catch(() => ({}));
+
+    if(!response.ok){
+        throw new Error(data.message || "Error del servidor");
+    }
+
+    return data;
+}
+
+async function loadKeys(){
+
+    try{
+
+        setStatus("Cargando keys...");
+
+        const data = await api("/api/admin/keys");
+
+        renderKeys(data.keys || []);
+
+        setStatus(
+            "Keys encontradas: " +
+            (data.keys ? data.keys.length : 0)
+        );
+
+    }catch(error){
+
+        setStatus("Error: " + error.message);
+
+        console.error(error);
+    }
+}
+
+async function generateKeys(){
+
+    const amount =
+        Math.max(
+            1,
+            Math.min(
+                100,
+                Number(document.getElementById("amount").value) || 1
+            )
+        );
+
+    const days =
+        Number(document.getElementById("duration").value);
+
+    try{
+
+        setStatus("Generando...");
+
+        const data = await api(
+            "/api/admin/generate",
+            {
+                method:"POST",
+                body:JSON.stringify({
+                    amount:amount,
+                    days:days
+                })
+            }
+        );
+
+        if(data.keys){
+
+            alert(
+                "Keys creadas:\n\n" +
+                data.keys.join("\n")
+            );
+        }
+
+        await loadKeys();
+
+    }catch(error){
+
+        setStatus("Error: " + error.message);
+    }
+}
+
+function renderKeys(keys){
+
+    keysBox.innerHTML = "";
+
+    if(keys.length === 0){
+
+        keysBox.innerHTML =
+            '<div class="info">No hay keys.</div>';
+
+        return;
+    }
+
+    keys.forEach(item => {
+
+        const row = document.createElement("div");
+        row.className = "keyrow";
+
+        const left = document.createElement("div");
+
+        const key = document.createElement("div");
+        key.className = "key";
+        key.textContent = item.key;
+
+        const info = document.createElement("div");
+        info.className = "info";
+
+        let expiration = "Permanente";
+
+        if(item.expiresAt){
+            expiration = item.expiresAt;
+        }
+
+        const user =
+            item.boundUserId ||
+            "Sin vincular";
+
+        info.textContent =
+            "Expira: " +
+            expiration +
+            " • Usuario: " +
+            user;
+
+        const state = document.createElement("div");
+
+        if(item.active){
+
+            state.className = "active";
+            state.textContent = "● ACTIVA";
+
+        }else{
+
+            state.className = "revoked";
+            state.textContent = "● REVOCADA";
+        }
+
+        left.appendChild(key);
+        left.appendChild(state);
+        left.appendChild(info);
+
+        const actions =
+            document.createElement("div");
+
+        actions.className = "actions";
+
+        const copy =
+            document.createElement("button");
+
+        copy.textContent = "COPIAR";
+
+        copy.onclick = () => {
+
+            navigator.clipboard.writeText(item.key);
+
+            copy.textContent = "COPIADO";
+
+            setTimeout(() => {
+                copy.textContent = "COPIAR";
+            },1000);
+        };
+
+        const toggle =
+            document.createElement("button");
+
+        toggle.textContent =
+            item.active ? "REVOCAR" : "REACTIVAR";
+
+        toggle.onclick = () =>
+            toggleKey(item.key,!item.active);
+
+        const remove =
+            document.createElement("button");
+
+        remove.textContent = "ELIMINAR";
+        remove.className = "danger";
+
+        remove.onclick = () =>
+            deleteKey(item.key);
+
+        actions.appendChild(copy);
+        actions.appendChild(toggle);
+        actions.appendChild(remove);
+
+        row.appendChild(left);
+        row.appendChild(actions);
+
+        keysBox.appendChild(row);
+    });
+}
+
+async function toggleKey(key,active){
+
+    try{
+
+        await api(
+            "/api/admin/keys/" +
+            encodeURIComponent(key),
+            {
+                method:"POST",
+                body:JSON.stringify({
+                    active:active
+                })
+            }
+        );
+
+        await loadKeys();
+
+    }catch(error){
+
+        alert(error.message);
+    }
+}
+
+async function deleteKey(key){
+
+    if(!confirm(
+        "¿Eliminar definitivamente esta key?\n\n" +
+        key
+    )){
+        return;
+    }
+
+    try{
+
+        await api(
+            "/api/admin/keys/" +
+            encodeURIComponent(key),
+            {
+                method:"DELETE"
+            }
+        );
+
+        await loadKeys();
+
+    }catch(error){
+
+        alert(error.message);
+    }
+}
+
+loadKeys();
+
+</script>
+
+</body>
+</html>
