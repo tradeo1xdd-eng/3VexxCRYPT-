@@ -1,0 +1,836 @@
+--// 3VEXXCRYPT AIM ASSIST + ESP
+--// Roblox Studio - LocalScript
+--// Tu lógica original + menú táctil + ESP
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+
+local LocalPlayer = Players.LocalPlayer
+local Camera = workspace.CurrentCamera
+
+--// CONFIG ORIGINAL
+local Config = {
+	Enabled = true,
+
+	ToggleKey = Enum.KeyCode.Q,
+	TargetPartToggleKey = Enum.KeyCode.E,
+
+	FOV = 120,
+	Strength = 0.18,
+	MaxDistance = 500,
+
+	TeamCheck = true,
+	VisibleCheck = true,
+
+	TargetParts = {
+		"Head",
+		"UpperTorso",
+		"HumanoidRootPart",
+	},
+
+	TargetPartIndex = 1,
+	TargetPart = "Head",
+
+	ShowFOV = true,
+
+	--// NUEVO: ESP
+	ESPEnabled = false,
+	ESPNames = true,
+	ESPDistance = true,
+}
+
+--// GUI
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "3VEXXCRYPT_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = PlayerGui
+
+--// BOTÓN PARA ABRIR
+local OpenButton = Instance.new("TextButton")
+OpenButton.Name = "OpenButton"
+OpenButton.Size = UDim2.fromOffset(60, 60)
+OpenButton.Position = UDim2.new(0, 20, 0.5, -30)
+OpenButton.BackgroundTransparency = 0.1
+OpenButton.Text = "☰"
+OpenButton.TextSize = 28
+OpenButton.Font = Enum.Font.GothamBold
+OpenButton.Parent = ScreenGui
+
+local OpenCorner = Instance.new("UICorner")
+OpenCorner.CornerRadius = UDim.new(1, 0)
+OpenCorner.Parent = OpenButton
+
+--// MENÚ
+local Menu = Instance.new("Frame")
+Menu.Name = "Menu"
+Menu.Size = UDim2.fromOffset(340, 430)
+Menu.Position = UDim2.new(0.5, -170, 0.5, -215)
+Menu.BackgroundTransparency = 0.05
+Menu.BorderSizePixel = 0
+Menu.Parent = ScreenGui
+
+local MenuCorner = Instance.new("UICorner")
+MenuCorner.CornerRadius = UDim.new(0, 14)
+MenuCorner.Parent = Menu
+
+--// TÍTULO
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, -60, 0, 55)
+Title.Position = UDim2.fromOffset(15, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "3VEXXCRYPT"
+Title.TextSize = 23
+Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = Menu
+
+--// CERRAR
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.fromOffset(45, 45)
+CloseButton.Position = UDim2.new(1, -50, 0, 5)
+CloseButton.BackgroundTransparency = 1
+CloseButton.Text = "×"
+CloseButton.TextSize = 30
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = Menu
+
+--// CONTENEDOR
+local Container = Instance.new("Frame")
+Container.Size = UDim2.new(1, -30, 1, -70)
+Container.Position = UDim2.fromOffset(15, 60)
+Container.BackgroundTransparency = 1
+Container.Parent = Menu
+
+local Layout = Instance.new("UIListLayout")
+Layout.Padding = UDim.new(0, 7)
+Layout.Parent = Container
+
+--// CREAR BOTÓN
+local function CreateButton(Text)
+	local Button = Instance.new("TextButton")
+
+	Button.Size = UDim2.new(1, 0, 0, 42)
+	Button.BackgroundTransparency = 0.12
+	Button.Text = Text
+	Button.TextSize = 15
+	Button.Font = Enum.Font.GothamBold
+
+	Button.Parent = Container
+
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0, 9)
+	Corner.Parent = Button
+
+	return Button
+end
+
+--// BOTONES
+local AimButton =
+	CreateButton("Aim Assist: ON")
+
+local ESPButton =
+	CreateButton("ESP: OFF")
+
+local FOVButton =
+	CreateButton("FOV: 120")
+
+local StrengthButton =
+	CreateButton("Strength: 18%")
+
+local TeamButton =
+	CreateButton("Team Check: ON")
+
+local VisibleButton =
+	CreateButton("Visible Check: ON")
+
+local TargetButton =
+	CreateButton("Target: HEAD")
+
+local NamesButton =
+	CreateButton("ESP Names: ON")
+
+local DistanceButton =
+	CreateButton("ESP Distance: ON")
+
+--// ABRIR / CERRAR
+OpenButton.Activated:Connect(function()
+	Menu.Visible = not Menu.Visible
+end)
+
+CloseButton.Activated:Connect(function()
+	Menu.Visible = false
+end)
+
+--// AIM
+AimButton.Activated:Connect(function()
+	Config.Enabled = not Config.Enabled
+
+	AimButton.Text =
+		"Aim Assist: " ..
+		(Config.Enabled and "ON" or "OFF")
+end)
+
+--// ESP
+ESPButton.Activated:Connect(function()
+	Config.ESPEnabled = not Config.ESPEnabled
+
+	ESPButton.Text =
+		"ESP: " ..
+		(Config.ESPEnabled and "ON" or "OFF")
+end)
+
+--// FOV
+FOVButton.Activated:Connect(function()
+
+	Config.FOV += 20
+
+	if Config.FOV > 300 then
+		Config.FOV = 60
+	end
+
+	FOVButton.Text =
+		"FOV: " .. Config.FOV
+end)
+
+--// STRENGTH
+StrengthButton.Activated:Connect(function()
+
+	Config.Strength += 0.05
+
+	if Config.Strength > 0.5 then
+		Config.Strength = 0.05
+	end
+
+	StrengthButton.Text =
+		"Strength: " ..
+		math.floor(Config.Strength * 100) ..
+		"%"
+end)
+
+--// TEAM CHECK
+TeamButton.Activated:Connect(function()
+
+	Config.TeamCheck =
+		not Config.TeamCheck
+
+	TeamButton.Text =
+		"Team Check: " ..
+		(Config.TeamCheck and "ON" or "OFF")
+end)
+
+--// VISIBLE CHECK
+VisibleButton.Activated:Connect(function()
+
+	Config.VisibleCheck =
+		not Config.VisibleCheck
+
+	VisibleButton.Text =
+		"Visible Check: " ..
+		(Config.VisibleCheck and "ON" or "OFF")
+end)
+
+--// TARGET
+TargetButton.Activated:Connect(function()
+
+	Config.TargetPartIndex += 1
+
+	if Config.TargetPartIndex >
+		#Config.TargetParts then
+
+		Config.TargetPartIndex = 1
+	end
+
+	Config.TargetPart =
+		Config.TargetParts[
+			Config.TargetPartIndex
+		]
+
+	TargetButton.Text =
+		"Target: " ..
+		string.upper(Config.TargetPart)
+end)
+
+--// ESP NOMBRES
+NamesButton.Activated:Connect(function()
+
+	Config.ESPNames =
+		not Config.ESPNames
+
+	NamesButton.Text =
+		"ESP Names: " ..
+		(Config.ESPNames and "ON" or "OFF")
+end)
+
+--// ESP DISTANCIA
+DistanceButton.Activated:Connect(function()
+
+	Config.ESPDistance =
+		not Config.ESPDistance
+
+	DistanceButton.Text =
+		"ESP Distance: " ..
+		(Config.ESPDistance and "ON" or "OFF")
+end)
+
+--// ARRASTRAR MENÚ EN TABLET
+local Dragging = false
+local DragStart
+local StartPosition
+
+Title.InputBegan:Connect(function(Input)
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch
+		or Input.UserInputType ==
+		Enum.UserInputType.MouseButton1 then
+
+		Dragging = true
+		DragStart = Input.Position
+		StartPosition = Menu.Position
+	end
+end)
+
+Title.InputEnded:Connect(function(Input)
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch
+		or Input.UserInputType ==
+		Enum.UserInputType.MouseButton1 then
+
+		Dragging = false
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+
+	if not Dragging then
+		return
+	end
+
+	if Input.UserInputType ==
+		Enum.UserInputType.Touch
+		or Input.UserInputType ==
+		Enum.UserInputType.MouseMovement then
+
+		local Delta =
+			Input.Position - DragStart
+
+		Menu.Position =
+			UDim2.new(
+				StartPosition.X.Scale,
+				StartPosition.X.Offset + Delta.X,
+
+				StartPosition.Y.Scale,
+				StartPosition.Y.Offset + Delta.Y
+			)
+	end
+end)
+
+--// CÍRCULO FOV
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOV"
+FOVCircle.AnchorPoint = Vector2.new(0.5, 0.5)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.BorderSizePixel = 0
+FOVCircle.Size = UDim2.fromOffset(
+	Config.FOV * 2,
+	Config.FOV * 2
+)
+FOVCircle.Parent = ScreenGui
+
+local CircleCorner = Instance.new("UICorner")
+CircleCorner.CornerRadius = UDim.new(1, 0)
+CircleCorner.Parent = FOVCircle
+
+local CircleStroke = Instance.new("UIStroke")
+CircleStroke.Thickness = 1.5
+CircleStroke.Transparency = 0.3
+CircleStroke.Parent = FOVCircle
+
+--// STATUS
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.fromOffset(300, 30)
+Status.AnchorPoint = Vector2.new(0.5, 0)
+Status.Position = UDim2.new(0.5, 0, 0, 20)
+Status.BackgroundTransparency = 1
+Status.TextSize = 16
+Status.Font = Enum.Font.GothamBold
+Status.Parent = ScreenGui
+
+local function UpdateStatus()
+
+	Status.Text =
+		"3VEXXCRYPT | " ..
+		string.upper(Config.TargetPart) ..
+		" | " ..
+		(Config.Enabled and "ON" or "OFF")
+end
+
+UpdateStatus()
+
+--// CAMBIAR TARGET ORIGINAL
+local function ChangeTargetPart()
+
+	Config.TargetPartIndex += 1
+
+	if Config.TargetPartIndex >
+		#Config.TargetParts then
+
+		Config.TargetPartIndex = 1
+	end
+
+	Config.TargetPart =
+		Config.TargetParts[
+			Config.TargetPartIndex
+		]
+
+	if Config.TargetPart ==
+		"UpperTorso" then
+
+		local Character =
+			LocalPlayer.Character
+
+		if Character
+			and not Character:FindFirstChild(
+				"UpperTorso"
+			) then
+
+			Config.TargetPart = "Torso"
+		end
+	end
+
+	UpdateStatus()
+
+	print(
+		"3VEXXCRYPT | Target:",
+		Config.TargetPart
+	)
+end
+
+--// INPUT ORIGINAL
+UserInputService.InputBegan:Connect(function(
+	Input,
+	Processed
+)
+
+	if Processed then
+		return
+	end
+
+	if Input.KeyCode ==
+		Config.ToggleKey then
+
+		Config.Enabled =
+			not Config.Enabled
+
+		AimButton.Text =
+			"Aim Assist: " ..
+			(Config.Enabled and "ON" or "OFF")
+
+		UpdateStatus()
+	end
+
+	if Input.KeyCode ==
+		Config.TargetPartToggleKey then
+
+		ChangeTargetPart()
+
+		TargetButton.Text =
+			"Target: " ..
+			string.upper(Config.TargetPart)
+	end
+end)
+
+--// ENEMIGO ORIGINAL
+local function IsEnemy(Player)
+
+	if not Config.TeamCheck then
+		return true
+	end
+
+	if not LocalPlayer.Team
+		or not Player.Team then
+
+		return true
+	end
+
+	return Player.Team ~=
+		LocalPlayer.Team
+end
+
+--// PARTE ORIGINAL
+local function GetTargetPart(Character)
+
+	local Part =
+		Character:FindFirstChild(
+			Config.TargetPart
+		)
+
+	if Part then
+		return Part
+	end
+
+	if Config.TargetPart ==
+		"UpperTorso" then
+
+		return Character:FindFirstChild(
+			"Torso"
+		)
+	end
+
+	return nil
+end
+
+--// VISIBILIDAD ORIGINAL
+local function IsVisible(Part)
+
+	if not Config.VisibleCheck then
+		return true
+	end
+
+	local Origin =
+		Camera.CFrame.Position
+
+	local Direction =
+		Part.Position - Origin
+
+	local Params =
+		RaycastParams.new()
+
+	Params.FilterType =
+		Enum.RaycastFilterType.Exclude
+
+	Params.FilterDescendantsInstances = {
+		LocalPlayer.Character
+	}
+
+	local Result =
+		workspace:Raycast(
+			Origin,
+			Direction,
+			Params
+		)
+
+	return Result
+		and Result.Instance:IsDescendantOf(
+			Part.Parent
+		)
+end
+
+--// BUSCAR OBJETIVO ORIGINAL
+local function GetClosestTarget()
+
+	local Closest = nil
+	local ClosestDistance = Config.FOV
+
+	local Center =
+		Vector2.new(
+			Camera.ViewportSize.X / 2,
+			Camera.ViewportSize.Y / 2
+		)
+
+	for _, Player in ipairs(
+		Players:GetPlayers()
+	) do
+
+		if Player ~= LocalPlayer
+			and IsEnemy(Player)
+			and Player.Character then
+
+			local Character =
+				Player.Character
+
+			local Humanoid =
+				Character:FindFirstChildOfClass(
+					"Humanoid"
+				)
+
+			local Part =
+				GetTargetPart(Character)
+
+			if Humanoid
+				and Humanoid.Health > 0
+				and Part then
+
+				local WorldDistance =
+					(
+						Camera.CFrame.Position -
+						Part.Position
+					).Magnitude
+
+				if WorldDistance <=
+					Config.MaxDistance then
+
+					local ScreenPosition,
+						OnScreen =
+						Camera:WorldToViewportPoint(
+							Part.Position
+						)
+
+					if OnScreen then
+
+						local ScreenDistance =
+							(
+								Vector2.new(
+									ScreenPosition.X,
+									ScreenPosition.Y
+								) - Center
+							).Magnitude
+
+						if ScreenDistance <
+							ClosestDistance
+							and IsVisible(Part) then
+
+							ClosestDistance =
+								ScreenDistance
+
+							Closest = Part
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return Closest
+end
+
+--// ESP
+local ESPObjects = {}
+
+local function CreateESP(Player)
+
+	if Player == LocalPlayer then
+		return
+	end
+
+	if ESPObjects[Player] then
+		return
+	end
+
+	local Character =
+		Player.Character
+
+	if not Character then
+		return
+	end
+
+	local Highlight =
+		Instance.new("Highlight")
+
+	Highlight.Name =
+		"3VEXXCRYPT_ESP"
+
+	Highlight.Adornee =
+		Character
+
+	Highlight.DepthMode =
+		Enum.HighlightDepthMode.AlwaysOnTop
+
+	Highlight.FillTransparency =
+		0.75
+
+	Highlight.OutlineTransparency =
+		0
+
+	Highlight.Parent =
+		ScreenGui
+
+	local Info =
+		Instance.new("BillboardGui")
+
+	Info.Name =
+		"3VEXXCRYPT_INFO"
+
+	Info.Adornee =
+		Character:FindFirstChild(
+			"Head"
+		)
+
+	Info.Size =
+		UDim2.fromOffset(180, 45)
+
+	Info.StudsOffset =
+		Vector3.new(0, 2.5, 0)
+
+	Info.AlwaysOnTop = true
+	Info.Parent = ScreenGui
+
+	local Text =
+		Instance.new("TextLabel")
+
+	Text.Size =
+		UDim2.fromScale(1, 1)
+
+	Text.BackgroundTransparency = 1
+	Text.TextSize = 14
+	Text.Font = Enum.Font.GothamBold
+
+	Text.Parent = Info
+
+	ESPObjects[Player] = {
+		Highlight = Highlight,
+		Info = Info,
+		Text = Text,
+	}
+end
+
+local function RemoveESP(Player)
+
+	local Object =
+		ESPObjects[Player]
+
+	if not Object then
+		return
+	end
+
+	Object.Highlight:Destroy()
+	Object.Info:Destroy()
+
+	ESPObjects[Player] = nil
+end
+
+local function UpdateESP()
+
+	if not Config.ESPEnabled then
+
+		for Player in pairs(ESPObjects) do
+			RemoveESP(Player)
+		end
+
+		return
+	end
+
+	for _, Player in ipairs(
+		Players:GetPlayers()
+	) do
+
+		if Player ~= LocalPlayer then
+
+			CreateESP(Player)
+
+			local Object =
+				ESPObjects[Player]
+
+			local Character =
+				Player.Character
+
+			if Object
+				and Character then
+
+				Object.Highlight.Enabled = true
+
+				local Head =
+					Character:FindFirstChild(
+						"Head"
+					)
+
+				Object.Info.Adornee =
+					Head
+
+				local Distance = 0
+
+				if Head then
+					Distance =
+						math.floor(
+							(
+								Camera.CFrame.Position -
+								Head.Position
+							).Magnitude
+						)
+				end
+
+				local Text = ""
+
+				if Config.ESPNames then
+					Text = Player.Name
+				end
+
+				if Config.ESPDistance then
+
+					if Text ~= "" then
+						Text ..= "\n"
+					end
+
+					Text ..=
+						Distance .. " studs"
+				end
+
+				Object.Text.Text = Text
+
+				Object.Info.Enabled =
+					Config.ESPNames
+					or Config.ESPDistance
+			end
+		end
+	end
+end
+
+Players.PlayerRemoving:Connect(function(Player)
+	RemoveESP(Player)
+end)
+
+--// LOOP
+RunService.RenderStepped:Connect(function()
+
+	Camera =
+		workspace.CurrentCamera
+
+	if not Camera then
+		return
+	end
+
+	FOVCircle.Position =
+		UDim2.fromOffset(
+			Camera.ViewportSize.X / 2,
+			Camera.ViewportSize.Y / 2
+		)
+
+	FOVCircle.Size =
+		UDim2.fromOffset(
+			Config.FOV * 2,
+			Config.FOV * 2
+		)
+
+	FOVCircle.Visible =
+		Config.ShowFOV
+
+	UpdateESP()
+
+	if not Config.Enabled then
+		return
+	end
+
+	local Target =
+		GetClosestTarget()
+
+	if Target then
+
+		local CameraPosition =
+			Camera.CFrame.Position
+
+		local Direction =
+			(
+				Target.Position -
+				CameraPosition
+			).Unit
+
+		local TargetCFrame =
+			CFrame.lookAt(
+				CameraPosition,
+				CameraPosition + Direction
+			)
+
+		Camera.CFrame =
+			Camera.CFrame:Lerp(
+				TargetCFrame,
+				Config.Strength
+			)
+	end
+end)
+
+print("3VEXXCRYPT | Loaded")
