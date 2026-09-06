@@ -1,156 +1,556 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <title>3VEXXCRYPT Key Generator</title>
+<title>3VEXXCRYPT Keys</title>
 
-  <style>
-    body {
-      margin: 0;
-      background: #000;
-      color: white;
-      font-family: Arial, sans-serif;
-      text-align: center;
-    }
+<style>
+* {
+  box-sizing: border-box;
+}
 
-    .box {
-      width: 90%;
-      max-width: 450px;
-      margin: 80px auto;
-      background: #111;
-      padding: 25px;
-      border-radius: 15px;
-      border: 1px solid #333;
-    }
+body {
+  margin: 0;
+  background: #050505;
+  color: white;
+  font-family: Arial, sans-serif;
+}
 
-    h1 {
-      margin-bottom: 10px;
-    }
+.container {
+  width: 92%;
+  max-width: 500px;
+  margin: 30px auto;
+}
 
-    #key {
-      background: #000;
-      border: 1px solid #333;
-      padding: 15px;
-      margin: 20px 0;
-      border-radius: 10px;
-      font-size: 18px;
-      word-break: break-all;
-    }
+h1 {
+  text-align: center;
+  margin-bottom: 5px;
+}
 
-    button {
-      width: 100%;
-      padding: 14px;
-      margin-top: 10px;
-      border: none;
-      border-radius: 10px;
-      font-size: 16px;
-      font-weight: bold;
-      cursor: pointer;
-    }
+.subtitle {
+  text-align: center;
+  color: #777;
+  margin-bottom: 25px;
+}
 
-    #generate {
-      background: white;
-      color: black;
-    }
+.box {
+  background: #111;
+  border: 1px solid #292929;
+  border-radius: 15px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
 
-    #copy {
-      background: #222;
-      color: white;
-    }
+select,
+input,
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 10px;
+  border-radius: 9px;
+  border: 1px solid #333;
+  font-size: 15px;
+}
 
-    #message {
-      margin-top: 15px;
-      color: #aaa;
-    }
-  </style>
+select,
+input {
+  background: #050505;
+  color: white;
+}
+
+button {
+  background: white;
+  color: black;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+button:hover {
+  opacity: .85;
+}
+
+.dark {
+  background: #222;
+  color: white;
+}
+
+.red {
+  background: #301010;
+  color: #ff7777;
+}
+
+.key {
+  background: #050505;
+  border: 1px solid #333;
+  border-radius: 10px;
+  padding: 15px;
+  margin-top: 15px;
+  text-align: center;
+  word-break: break-all;
+  font-weight: bold;
+}
+
+.item {
+  background: #080808;
+  border: 1px solid #252525;
+  border-radius: 10px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.active {
+  color: #6cff8a;
+}
+
+.revoked {
+  color: #ff6666;
+}
+
+.expired {
+  color: #ffb347;
+}
+
+.small {
+  color: #777;
+  font-size: 12px;
+  margin-top: 5px;
+}
+
+.message {
+  text-align: center;
+  margin-top: 12px;
+  min-height: 18px;
+}
+</style>
 </head>
 
 <body>
 
-  <div class="box">
+<div class="container">
 
-    <h1>3VEXXCRYPT</h1>
-
-    <p>Key Generator</p>
-
-    <div id="key">
-      Pulsa "Generar Key"
-    </div>
-
-    <button id="generate" onclick="generateKey()">
-      🔑 Generar Key
-    </button>
-
-    <button id="copy" onclick="copyKey()">
-      📋 Copiar Key
-    </button>
-
-    <div id="message"></div>
-
-  </div>
+<h1>3VEXXCRYPT</h1>
+<div class="subtitle">Key Manager</div>
 
 
-  <script>
+<!-- GENERADOR -->
 
-    let currentKey = "";
+<div class="box">
 
-    function generateKey() {
+<h2>🔑 Generar Key</h2>
 
-      let caracteres =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+<select id="duration">
 
-      function grupo() {
+<option value="3600000">1 hora</option>
+<option value="86400000">1 día</option>
+<option value="604800000">7 días</option>
+<option value="2592000000">30 días</option>
+<option value="perma">PERMA</option>
 
-        let resultado = "";
+</select>
 
-        for (let i = 0; i < 4; i++) {
+<button onclick="generateKey()">
+Generar Key
+</button>
 
-          let numero =
-            Math.floor(Math.random() * caracteres.length);
+<div id="newKey" class="key">
+Ninguna key generada
+</div>
 
-          resultado += caracteres[numero];
+<button class="dark" onclick="copyKey()">
+📋 Copiar Key
+</button>
 
-        }
+<div id="message" class="message"></div>
 
-        return resultado;
+</div>
+
+
+<!-- VALIDAR -->
+
+<div class="box">
+
+<h2>✅ Validar Key</h2>
+
+<input
+id="validateInput"
+placeholder="Escribe una key"
+>
+
+<button onclick="validateKey()">
+Validar
+</button>
+
+<div id="validationResult" class="message"></div>
+
+</div>
+
+
+<!-- KEYS -->
+
+<div class="box">
+
+<h2>📋 Mis Keys</h2>
+
+<div id="list"></div>
+
+</div>
+
+</div>
+
+
+<script>
+
+let currentKey = "";
+
+const STORAGE = "3VEXXCRYPT_KEYS";
+
+
+function getKeys() {
+
+  return JSON.parse(
+    localStorage.getItem(STORAGE) || "[]"
+  );
+
+}
+
+
+function saveKeys(keys) {
+
+  localStorage.setItem(
+    STORAGE,
+    JSON.stringify(keys)
+  );
+
+}
+
+
+function randomPart() {
+
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+
+  let text = "";
+
+  for (let i = 0; i < 4; i++) {
+
+    text += chars[
+      Math.floor(
+        Math.random() * chars.length
+      )
+    ];
+
+  }
+
+  return text;
+
+}
+
+
+function generateKey() {
+
+  const duration =
+    document.getElementById("duration").value;
+
+  currentKey =
+    "3VEXX-" +
+    randomPart() + "-" +
+    randomPart() + "-" +
+    randomPart();
+
+
+  let expires = null;
+
+  if (duration !== "perma") {
+
+    expires =
+      Date.now() + Number(duration);
+
+  }
+
+
+  const keys = getKeys();
+
+
+  keys.push({
+
+    key: currentKey,
+
+    expires: expires,
+
+    revoked: false,
+
+    created: Date.now()
+
+  });
+
+
+  saveKeys(keys);
+
+
+  document.getElementById("newKey").textContent =
+    currentKey;
+
+
+  document.getElementById("message").textContent =
+    "✅ Key creada";
+
+
+  renderKeys();
+
+}
+
+
+function copyKey() {
+
+  if (!currentKey) {
+
+    document.getElementById("message").textContent =
+      "Genera una key primero.";
+
+    return;
+
+  }
+
+
+  navigator.clipboard.writeText(currentKey)
+    .then(() => {
+
+      document.getElementById("message").textContent =
+        "📋 Key copiada";
+
+    })
+    .catch(() => {
+
+      document.getElementById("message").textContent =
+        "No se pudo copiar.";
+
+    });
+
+}
+
+
+function getStatus(item) {
+
+  if (item.revoked) {
+
+    return {
+      text: "🔴 Revocada",
+      class: "revoked"
+    };
+
+  }
+
+
+  if (
+    item.expires !== null &&
+    Date.now() >= item.expires
+  ) {
+
+    return {
+      text: "🟠 Expirada",
+      class: "expired"
+    };
+
+  }
+
+
+  return {
+    text: "🟢 Activa",
+    class: "active"
+  };
+
+}
+
+
+function validateKey() {
+
+  const input =
+    document.getElementById("validateInput")
+      .value
+      .trim()
+      .toUpperCase();
+
+
+  const result =
+    document.getElementById("validationResult");
+
+
+  if (!input) {
+
+    result.textContent =
+      "Escribe una key.";
+
+    return;
+
+  }
+
+
+  const keys = getKeys();
+
+
+  const item =
+    keys.find(k => k.key === input);
+
+
+  if (!item) {
+
+    result.textContent =
+      "❌ Key inválida.";
+
+    return;
+
+  }
+
+
+  const status =
+    getStatus(item);
+
+
+  if (status.class === "active") {
+
+    result.textContent =
+      "✅ Key válida y activa.";
+
+  } else {
+
+    result.textContent =
+      "❌ Key no válida: " +
+      status.text;
+
+  }
+
+}
+
+
+function revokeKey(index) {
+
+  const keys = getKeys();
+
+
+  if (!keys[index]) return;
+
+
+  keys[index].revoked = true;
+
+
+  saveKeys(keys);
+
+
+  renderKeys();
+
+}
+
+
+function formatDate(timestamp) {
+
+  if (!timestamp) {
+
+    return "Nunca";
+
+  }
+
+
+  return new Date(timestamp)
+    .toLocaleString();
+
+}
+
+
+function renderKeys() {
+
+  const list =
+    document.getElementById("list");
+
+
+  const keys = getKeys();
+
+
+  if (keys.length === 0) {
+
+    list.innerHTML =
+      "<div class='small'>No hay keys.</div>";
+
+    return;
+
+  }
+
+
+  list.innerHTML = "";
+
+
+  keys.slice().reverse()
+    .forEach((item, reverseIndex) => {
+
+
+      const index =
+        keys.length - 1 - reverseIndex;
+
+
+      const status =
+        getStatus(item);
+
+
+      const div =
+        document.createElement("div");
+
+
+      div.className = "item";
+
+
+      div.innerHTML = `
+
+        <b>${item.key}</b>
+
+        <div class="${status.class}">
+          ${status.text}
+        </div>
+
+        <div class="small">
+          Expira: ${formatDate(item.expires)}
+        </div>
+
+      `;
+
+
+      if (
+        !item.revoked &&
+        status.class === "active"
+      ) {
+
+        const button =
+          document.createElement("button");
+
+
+        button.className = "red";
+
+        button.textContent =
+          "❌ Cancelar Key";
+
+
+        button.onclick = function() {
+
+          revokeKey(index);
+
+        };
+
+
+        div.appendChild(button);
+
       }
 
-      currentKey =
-        "3VEXX-" +
-        grupo() + "-" +
-        grupo() + "-" +
-        grupo();
 
-      document.getElementById("key").innerText =
-        currentKey;
+      list.appendChild(div);
 
-      document.getElementById("message").innerText =
-        "Key generada correctamente";
+    });
 
-    }
+}
 
 
-    function copyKey() {
+renderKeys();
 
-      if (currentKey === "") {
-
-        document.getElementById("message").innerText =
-          "Primero genera una key";
-
-        return;
-
-      }
-
-      navigator.clipboard.writeText(currentKey);
-
-      document.getElementById("message").innerText =
-        "Key copiada";
-
-    }
-
-  </script>
+</script>
 
 </body>
 </html>
