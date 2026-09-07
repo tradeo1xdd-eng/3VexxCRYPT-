@@ -1,3 +1,5 @@
+--// 3VEXXCRYPT
+
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
@@ -10,74 +12,113 @@ local Camera = workspace.CurrentCamera
 --==================================================
 
 local Config = {
-    Aimbot = {
-        Enabled = false,
-        FOV = 150,
-        Smoothness = 0.15,
-        TargetPart = "Head"
-    },
+	Enabled = true,
 
-    PlayerESP = {
-        Enabled = false,
-        Head = false,
-        Chest = false,
-        Torso = false,
-        Name = true,
-        Distance = true,
-        Line = false
-    },
+	ToggleKey = Enum.KeyCode.Q,
+	TargetPartToggleKey = Enum.KeyCode.E,
 
-    WeaponESP = {
-        Enabled = false
-    },
+	FOV = 120,
+	Strength = 0.18,
+	MaxDistance = 500,
 
-    ItemESP = {
-        Enabled = false
-    }
+	TeamCheck = true,
+	VisibleCheck = true,
+
+	TargetParts = {
+		"Head",
+		"UpperTorso",
+		"HumanoidRootPart"
+	},
+
+	TargetPartIndex = 1,
+	TargetPart = "Head",
+
+	ShowFOV = true,
+
+	ESPEnabled = false,
+	ESPNames = true,
+	ESPDistance = true,
+
+	ItemESPEnabled = false,
+	ItemESPNames = true,
+	ItemESPDistance = true,
+
+	WeaponESPEnabled = false,
+
+	LineESPEnabled = false
 }
 
---==================================================
--- ARMAS
---==================================================
-
-local Weapons = {
-    ["C9"] = true,
-    ["G3"] = true,
-    ["Glock"] = true,
-    ["P226"] = true,
-    ["Uzi"] = true,
-    ["Hunting Rifle"] = true,
-    ["Double Barrel"] = true,
-    ["M24"] = true,
-    ["Draco"] = true,
-    ["Remington"] = true,
-    ["AK47"] = true,
-    ["AK47K"] = true,
-    ["MP5"] = true,
-    ["Crossbow"] = true,
-    ["RPG"] = true,
-    ["M16"] = true,
-    ["Anaconda"] = true,
-    ["M249"] = true,
-    ["Skorpion"] = true,
-
-    ["Frying Pan"] = true,
-    ["Switchblade"] = true,
-    ["Butcher Knife"] = true,
-    ["Wrench"] = true,
-    ["Axe"] = true,
-    ["Metal Bat"] = true,
-    ["Machete"] = true,
-    ["Shovel"] = true,
-    ["Combat Axe"] = true,
-    ["Sledge Hammer"] = true,
-    ["Barbed Bat"] = true,
-    ["Barbed Baseball Bat"] = true,
-    ["Tactical Knife"] = true,
-    ["Tactical Shovel"] = true,
-    ["Tactical Axe"] = true,
-    ["Brainrot Slapper"] = true
+local TargetNames = {
+	Head = "CABEZA",
+	UpperTorso = "PECHO",
+	Torso = "PECHO",
+	HumanoidRootPart = "TORZO"
 }
+
+local function GetTargetDisplayName()
+	return TargetNames[Config.TargetPart]
+		or string.upper(Config.TargetPart)
+end
+
+--==================================================
+-- SKIP ITEMS
+--==================================================
+
+local SkipWords = {
+	"ball",
+	"balls",
+	"bullet",
+	"bullets",
+	"ammo",
+	"ammunition",
+
+	"crate",
+	"box",
+	"weaponcrate",
+	"weaponbox",
+
+	"shop",
+	"store",
+	"shopstand",
+	"stand",
+
+	"purchase",
+	"buy",
+	"buybox",
+	"buycrate",
+
+	"vehicle",
+	"vehicles",
+	"car",
+	"cars",
+	"truck",
+	"van",
+
+	"cash",
+	"money",
+	"coin",
+	"coins",
+
+	"spawn",
+	"purchasepoint",
+	"buyzone"
+}
+
+local function ShouldSkip(Object)
+	if not Object then
+		return true
+	end
+
+	local Name = string.lower(Object.Name)
+
+	for _, Word in ipairs(SkipWords) do
+		if string.find(Name, Word, 1, true) then
+			return true
+		end
+	end
+
+	return false
+end
 
 --==================================================
 -- GUI
@@ -88,693 +129,1076 @@ ScreenGui.Name = "3VEXXCRYPT"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
+local OpenButton = Instance.new("TextButton")
+OpenButton.Size = UDim2.new(0, 50, 0, 50)
+OpenButton.Position = UDim2.new(0, 15, 0.5, -25)
+OpenButton.BackgroundColor3 = Color3.fromRGB(15,15,15)
+OpenButton.Text = "☰"
+OpenButton.TextColor3 = Color3.new(1,1,1)
+OpenButton.TextSize = 24
+OpenButton.BorderSizePixel = 0
+OpenButton.Parent = ScreenGui
+
+local OpenCorner = Instance.new("UICorner")
+OpenCorner.CornerRadius = UDim.new(0,10)
+OpenCorner.Parent = OpenButton
+
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 430, 0, 540)
-Main.Position = UDim2.new(0.5, -215, 0.5, -270)
-Main.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+Main.Size = UDim2.new(0,340,0,590)
+Main.Position = UDim2.new(0.5,-170,0.5,-295)
+Main.BackgroundColor3 = Color3.fromRGB(10,10,10)
 Main.BorderSizePixel = 0
+Main.Visible = true
 Main.Parent = ScreenGui
 
-local Corner = Instance.new("UICorner")
-Corner.CornerRadius = UDim.new(0, 12)
-Corner.Parent = Main
+local MainCorner = Instance.new("UICorner")
+MainCorner.CornerRadius = UDim.new(0,12)
+MainCorner.Parent = Main
 
 local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1, 0, 0, 50)
+Title.Size = UDim2.new(1,-50,0,40)
+Title.Position = UDim2.new(0,15,0,5)
 Title.BackgroundTransparency = 1
 Title.Text = "3VEXXCRYPT"
-Title.TextColor3 = Color3.new(1, 1, 1)
-Title.TextSize = 22
+Title.TextColor3 = Color3.new(1,1,1)
+Title.TextSize = 18
 Title.Font = Enum.Font.GothamBold
+Title.TextXAlignment = Enum.TextXAlignment.Left
 Title.Parent = Main
 
-local Layout = Instance.new("UIListLayout")
-Layout.Padding = UDim.new(0, 6)
-Layout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-Layout.Parent = Main
+local Close = Instance.new("TextButton")
+Close.Size = UDim2.new(0,35,0,35)
+Close.Position = UDim2.new(1,-45,0,10)
+Close.BackgroundColor3 = Color3.fromRGB(25,25,25)
+Close.Text = "×"
+Close.TextColor3 = Color3.new(1,1,1)
+Close.TextSize = 20
+Close.BorderSizePixel = 0
+Close.Parent = Main
 
---==================================================
--- TOGGLE
---==================================================
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0,8)
+CloseCorner.Parent = Close
 
-local function CreateToggle(text, callback)
+local Status = Instance.new("TextLabel")
+Status.Size = UDim2.new(1,-30,0,25)
+Status.Position = UDim2.new(0,15,0,43)
+Status.BackgroundTransparency = 1
+Status.Text = "3VEXXCRYPT | CABEZA"
+Status.TextColor3 = Color3.fromRGB(180,180,180)
+Status.TextSize = 11
+Status.Font = Enum.Font.Gotham
+Status.Parent = Main
 
-    local Button = Instance.new("TextButton")
+local function CreateButton(TextValue,Y)
+	local Button = Instance.new("TextButton")
 
-    Button.Size = UDim2.new(0, 380, 0, 38)
-    Button.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Button.BorderSizePixel = 0
-    Button.TextColor3 = Color3.new(1, 1, 1)
-    Button.TextSize = 14
-    Button.Font = Enum.Font.Gotham
-    Button.Text = text .. " : OFF"
-    Button.Parent = Main
+	Button.Size = UDim2.new(1,-30,0,38)
+	Button.Position = UDim2.new(0,15,0,Y)
 
-    local C = Instance.new("UICorner")
-    C.CornerRadius = UDim.new(0, 8)
-    C.Parent = Button
+	Button.BackgroundColor3 = Color3.fromRGB(20,20,20)
+	Button.TextColor3 = Color3.new(1,1,1)
 
-    local state = false
+	Button.Text = TextValue
+	Button.TextSize = 12
+	Button.Font = Enum.Font.GothamMedium
 
-    Button.MouseButton1Click:Connect(function()
+	Button.BorderSizePixel = 0
+	Button.Parent = Main
 
-        state = not state
+	local Corner = Instance.new("UICorner")
+	Corner.CornerRadius = UDim.new(0,8)
+	Corner.Parent = Button
 
-        Button.Text =
-            text .. " : " .. (state and "ON" or "OFF")
+	return Button
+end
 
-        callback(state)
+local function CreateSection(TextValue,Y)
+	local Section = Instance.new("TextLabel")
 
-    end)
+	Section.Size = UDim2.new(1,-30,0,25)
+	Section.Position = UDim2.new(0,15,0,Y)
 
-    return Button
+	Section.BackgroundTransparency = 1
+	Section.Text = TextValue
+	Section.TextColor3 = Color3.fromRGB(140,140,140)
+	Section.TextSize = 11
+	Section.Font = Enum.Font.GothamBold
+	Section.TextXAlignment = Enum.TextXAlignment.Left
+
+	Section.Parent = Main
+
+	return Section
 end
 
 --==================================================
--- AIMBOT
+-- AIMBOT MENU
 --==================================================
 
-CreateToggle("Aimbot", function(value)
-    Config.Aimbot.Enabled = value
-end)
+CreateSection("AIMBOT",72)
 
-CreateToggle("Target Head", function(value)
+local AimButton = CreateButton("Aim Assist: ON",98)
+local TargetButton = CreateButton("Objetivo: CABEZA",142)
+local FOVButton = CreateButton("FOV: 120",186)
+local StrengthButton = CreateButton("Strength: 18%",230)
+local TeamButton = CreateButton("Team Check: ON",274)
+local VisibleButton = CreateButton("Visible Check: ON",318)
 
-    if value then
-        Config.Aimbot.TargetPart = "Head"
-    end
+--==================================================
+-- ESP MENU
+--==================================================
 
-end)
+CreateSection("ESP",366)
 
-CreateToggle("Target Chest", function(value)
+local ESPButton = CreateButton("Player ESP: OFF",392)
+local ItemButton = CreateButton("Item ESP: OFF",436)
+local WeaponButton = CreateButton("Weapon ESP: OFF",480)
+local LineButton = CreateButton("Line ESP: OFF",524)
 
-    if value then
-        Config.Aimbot.TargetPart = "UpperTorso"
-    end
+--==================================================
+-- FOV
+--==================================================
 
-end)
+local FOVCircle = Instance.new("Frame")
+FOVCircle.Name = "FOVCircle"
+FOVCircle.AnchorPoint = Vector2.new(0.5,0.5)
+FOVCircle.Position = UDim2.new(0.5,0,0.5,0)
+FOVCircle.Size = UDim2.new(0,Config.FOV*2,0,Config.FOV*2)
+FOVCircle.BackgroundTransparency = 1
+FOVCircle.Visible = Config.ShowFOV
+FOVCircle.Parent = ScreenGui
 
-CreateToggle("Target Torso", function(value)
+local FOVStroke = Instance.new("UIStroke")
+FOVStroke.Thickness = 1
+FOVStroke.Color = Color3.fromRGB(255,255,255)
+FOVStroke.Transparency = 0.25
+FOVStroke.Parent = FOVCircle
 
-    if value then
-        Config.Aimbot.TargetPart = "Torso"
-    end
-
-end)
+local FOVCorner = Instance.new("UICorner")
+FOVCorner.CornerRadius = UDim.new(1,0)
+FOVCorner.Parent = FOVCircle
 
 --==================================================
 -- PLAYER ESP
 --==================================================
 
-CreateToggle("Player ESP", function(value)
-    Config.PlayerESP.Enabled = value
-end)
+local PlayerESP = {}
 
-CreateToggle("Head ESP", function(value)
-    Config.PlayerESP.Head = value
-end)
+local function RemovePlayerESP(Player)
+	local Data = PlayerESP[Player]
 
-CreateToggle("Chest ESP", function(value)
-    Config.PlayerESP.Chest = value
-end)
+	if not Data then
+		return
+	end
 
-CreateToggle("Torso ESP", function(value)
-    Config.PlayerESP.Torso = value
-end)
+	if Data.Highlight then
+		Data.Highlight:Destroy()
+	end
 
-CreateToggle("Player Name", function(value)
-    Config.PlayerESP.Name = value
-end)
+	if Data.Billboard then
+		Data.Billboard:Destroy()
+	end
 
-CreateToggle("Player Distance", function(value)
-    Config.PlayerESP.Distance = value
-end)
+	if Data.Line then
+		Data.Line:Destroy()
+	end
 
---// NUEVO: LINE ESP
-
-CreateToggle("Line ESP", function(value)
-
-    Config.PlayerESP.Line = value
-
-end)
-
---==================================================
--- WEAPON ESP
---==================================================
-
-CreateToggle("Weapon ESP", function(value)
-
-    Config.WeaponESP.Enabled = value
-
-end)
-
---==================================================
--- ITEM ESP
---==================================================
-
-CreateToggle("Item ESP", function(value)
-
-    Config.ItemESP.Enabled = value
-
-end)
-
---==================================================
--- ESP STORAGE
---==================================================
-
-local ESPObjects = {}
-
-local LineObjects = {}
-
---==================================================
--- REMOVE ESP
---==================================================
-
-local function RemoveESP(object)
-
-    if ESPObjects[object] then
-
-        ESPObjects[object]:Destroy()
-
-        ESPObjects[object] = nil
-
-    end
-
+	PlayerESP[Player] = nil
 end
 
---==================================================
--- CREATE ESP
---==================================================
+local function CreatePlayerESP(Player)
+	if Player == LocalPlayer then
+		return
+	end
 
-local function CreateESP(object, text)
+	local Character = Player.Character
 
-    if ESPObjects[object] then
-        return
-    end
+	if not Character then
+		return
+	end
 
-    local adornee
+	local Root = Character:FindFirstChild("HumanoidRootPart")
 
-    if object:IsA("BasePart") then
+	if not Root then
+		return
+	end
 
-        adornee = object
+	RemovePlayerESP(Player)
 
-    elseif object:IsA("Model") then
+	local Highlight = Instance.new("Highlight")
+	Highlight.Name = "3VEXXCRYPT_PlayerESP"
+	Highlight.FillTransparency = 0.8
+	Highlight.OutlineTransparency = 0
+	Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	Highlight.Adornee = Character
+	Highlight.Parent = Character
 
-        adornee =
-            object:FindFirstChildWhichIsA(
-                "BasePart",
-                true
-            )
+	local Billboard = Instance.new("BillboardGui")
+	Billboard.Name = "3VEXXCRYPT_PlayerInfo"
+	Billboard.Size = UDim2.new(0,150,0,25)
+	Billboard.StudsOffset = Vector3.new(0,3,0)
+	Billboard.AlwaysOnTop = true
+	Billboard.Adornee = Root
+	Billboard.Parent = Character
 
-    end
+	local Text = Instance.new("TextLabel")
+	Text.Size = UDim2.new(1,0,1,0)
+	Text.BackgroundTransparency = 1
+	Text.TextColor3 = Color3.new(1,1,1)
+	Text.TextStrokeTransparency = 0.5
+	Text.TextSize = 9
+	Text.Font = Enum.Font.GothamBold
+	Text.Parent = Billboard
 
-    if not adornee then
-        return
-    end
+	PlayerESP[Player] = {
+		Highlight = Highlight,
+		Billboard = Billboard,
+		Text = Text
+	}
+end
 
-    local Billboard =
-        Instance.new("BillboardGui")
+local function UpdatePlayerESP()
+	for Player,Data in pairs(PlayerESP) do
+		local Character = Player.Character
 
-    Billboard.Name =
-        "3VEXXCRYPT_ESP"
+		if not Character or not Character.Parent then
+			RemovePlayerESP(Player)
+			continue
+		end
 
-    Billboard.Size =
-        UDim2.new(0, 180, 0, 35)
+		local Root = Character:FindFirstChild("HumanoidRootPart")
+		local Humanoid = Character:FindFirstChildOfClass("Humanoid")
 
-    Billboard.StudsOffset =
-        Vector3.new(0, 2, 0)
+		if not Root or not Humanoid or Humanoid.Health <= 0 then
+			Data.Highlight.Enabled = false
+			Data.Billboard.Enabled = false
+			continue
+		end
 
-    Billboard.AlwaysOnTop = true
+		if not Config.ESPEnabled then
+			Data.Highlight.Enabled = false
+			Data.Billboard.Enabled = false
+			continue
+		end
 
-    Billboard.Adornee = adornee
+		local Distance =
+			(Root.Position - Camera.CFrame.Position).Magnitude
 
-    Billboard.Parent = adornee
+		local Text = ""
 
-    local Label =
-        Instance.new("TextLabel")
+		if Config.ESPNames then
+			Text = Player.Name
+		end
 
-    Label.Size =
-        UDim2.new(1, 0, 1, 0)
+		if Config.ESPDistance then
+			if Text ~= "" then
+				Text = Text.." ["..math.floor(Distance).."m]"
+			else
+				Text = "["..math.floor(Distance).."m]"
+			end
+		end
 
-    Label.BackgroundTransparency = 1
-
-    Label.Text = text
-
-    Label.TextColor3 =
-        Color3.new(1, 1, 1)
-
-    Label.TextStrokeTransparency = 0
-
-    Label.TextSize = 14
-
-    Label.Font =
-        Enum.Font.GothamBold
-
-    Label.Parent = Billboard
-
-    ESPObjects[object] = Billboard
-
+		Data.Text.Text = Text
+		Data.Highlight.Enabled = true
+		Data.Billboard.Enabled = true
+	end
 end
 
 --==================================================
 -- LINE ESP
 --==================================================
 
-local function CreateLine(player)
+local LineESP = {}
 
-    if LineObjects[player] then
-        return
-    end
-
-    local Line =
-        Drawing.new("Line")
-
-    Line.Thickness = 1.5
-    Line.Transparency = 1
-    Line.Visible = false
-
-    LineObjects[player] = Line
-
+local function RemoveLineESP(Player)
+	if LineESP[Player] then
+		LineESP[Player]:Destroy()
+		LineESP[Player] = nil
+	end
 end
 
-local function RemoveLine(player)
+local function CreateLineESP(Player)
+	if Player == LocalPlayer then
+		return
+	end
 
-    if LineObjects[player] then
+	local Line = Instance.new("Frame")
 
-        LineObjects[player]:Remove()
+	Line.Name = "3VEXXCRYPT_Line"
+	Line.AnchorPoint = Vector2.new(0.5,0.5)
+	Line.BackgroundColor3 = Color3.new(1,1,1)
+	Line.BorderSizePixel = 0
+	Line.Size = UDim2.new(0,1,0,0)
+	Line.Visible = false
+	Line.Parent = ScreenGui
 
-        LineObjects[player] = nil
-
-    end
-
+	LineESP[Player] = Line
 end
 
-local function UpdateLines()
+local function UpdateLineESP()
+	for Player,Line in pairs(LineESP) do
+		if not Config.LineESPEnabled then
+			Line.Visible = false
+			continue
+		end
 
-    for _, player in ipairs(Players:GetPlayers()) do
+		local Character = Player.Character
+		local Root = Character and Character:FindFirstChild("HumanoidRootPart")
 
-        if player ~= LocalPlayer then
+		if not Root then
+			Line.Visible = false
+			continue
+		end
 
-            if Config.PlayerESP.Line then
+		local ScreenPos,OnScreen =
+			Camera:WorldToViewportPoint(Root.Position)
 
-                CreateLine(player)
+		if not OnScreen then
+			Line.Visible = false
+			continue
+		end
 
-                local Line =
-                    LineObjects[player]
+		local Start =
+			Vector2.new(
+				Camera.ViewportSize.X/2,
+				Camera.ViewportSize.Y
+			)
 
-                local Character =
-                    player.Character
+		local Finish =
+			Vector2.new(
+				ScreenPos.X,
+				ScreenPos.Y
+			)
 
-                local Root =
-                    Character
-                    and Character:FindFirstChild(
-                        "HumanoidRootPart"
-                    )
+		local Difference = Finish - Start
+		local Length = Difference.Magnitude
 
-                if Root then
+		Line.Position =
+			UDim2.new(
+				0,
+				Start.X + Difference.X/2,
+				0,
+				Start.Y + Difference.Y/2
+			)
 
-                    local Position, Visible =
-                        Camera:WorldToViewportPoint(
-                            Root.Position
-                        )
+		Line.Size =
+			UDim2.new(0,1,0,Length)
 
-                    if Visible then
+		Line.Rotation =
+			math.deg(math.atan2(Difference.Y,Difference.X))
+			+ 90
 
-                        local Viewport =
-                            Camera.ViewportSize
-
-                        Line.From =
-                            Vector2.new(
-                                Viewport.X / 2,
-                                Viewport.Y
-                            )
-
-                        Line.To =
-                            Vector2.new(
-                                Position.X,
-                                Position.Y
-                            )
-
-                        Line.Visible = true
-
-                    else
-
-                        Line.Visible = false
-
-                    end
-
-                else
-
-                    Line.Visible = false
-
-                end
-
-            elseif LineObjects[player] then
-
-                RemoveLine(player)
-
-            end
-
-        end
-
-    end
-
+		Line.Visible = true
+	end
 end
 
 --==================================================
--- WEAPON SCANNER
+-- ITEM ESP
 --==================================================
 
-local function ScanWeapons()
+local ItemESP = {}
 
-    for _, object in ipairs(
-        workspace:GetDescendants()
-    ) do
+local function GetAdornee(Object)
+	if Object:IsA("BasePart") then
+		return Object
+	end
 
-        if Weapons[object.Name] then
+	if Object:IsA("Model") then
+		return Object.PrimaryPart
+			or Object:FindFirstChildWhichIsA("BasePart",true)
+	end
 
-            if Config.WeaponESP.Enabled then
+	return nil
+end
 
-                CreateESP(
-                    object,
-                    "🔫 " .. object.Name
-                )
+local function RemoveItemESP(Object)
+	local Data = ItemESP[Object]
 
-            else
+	if not Data then
+		return
+	end
 
-                RemoveESP(object)
+	if Data.Highlight then
+		Data.Highlight:Destroy()
+	end
 
-            end
+	if Data.Billboard then
+		Data.Billboard:Destroy()
+	end
 
-        end
+	ItemESP[Object] = nil
+end
 
-    end
+local function CreateItemESP(Object)
+	if not Object then
+		return
+	end
 
+	if not Object:IsA("Model")
+		and not Object:IsA("BasePart") then
+		return
+	end
+
+	if ShouldSkip(Object) then
+		return
+	end
+
+	if LocalPlayer.Character
+		and Object:IsDescendantOf(LocalPlayer.Character) then
+		return
+	end
+
+	if ItemESP[Object] then
+		return
+	end
+
+	local Adornee = GetAdornee(Object)
+
+	if not Adornee then
+		return
+	end
+
+	local Highlight = Instance.new("Highlight")
+	Highlight.Name = "3VEXXCRYPT_ItemESP"
+	Highlight.FillTransparency = 0.85
+	Highlight.OutlineTransparency = 0
+	Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	Highlight.Adornee = Object
+	Highlight.Parent = Object
+
+	local Billboard = Instance.new("BillboardGui")
+	Billboard.Name = "3VEXXCRYPT_ItemInfo"
+	Billboard.Size = UDim2.new(0,150,0,24)
+	Billboard.StudsOffset = Vector3.new(0,2.5,0)
+	Billboard.AlwaysOnTop = true
+	Billboard.Adornee = Adornee
+	Billboard.Parent = Object
+
+	local Text = Instance.new("TextLabel")
+	Text.Size = UDim2.new(1,0,1,0)
+	Text.BackgroundTransparency = 1
+	Text.TextColor3 = Color3.new(1,1,1)
+	Text.TextStrokeTransparency = 0.5
+	Text.TextSize = 8
+	Text.Font = Enum.Font.GothamBold
+	Text.Parent = Billboard
+
+	ItemESP[Object] = {
+		Highlight = Highlight,
+		Billboard = Billboard,
+		Text = Text,
+		Adornee = Adornee
+	}
+end
+
+local function UpdateItemESP()
+	for Object,Data in pairs(ItemESP) do
+		if not Object.Parent then
+			RemoveItemESP(Object)
+			continue
+		end
+
+		if not Config.ItemESPEnabled then
+			Data.Highlight.Enabled = false
+			Data.Billboard.Enabled = false
+			continue
+		end
+
+		local Adornee = Data.Adornee
+
+		if not Adornee or not Adornee.Parent then
+			RemoveItemESP(Object)
+			continue
+		end
+
+		local Distance =
+			(Adornee.Position - Camera.CFrame.Position).Magnitude
+
+		local Text = ""
+
+		if Config.ItemESPNames then
+			Text = Object.Name
+		end
+
+		if Config.ItemESPDistance then
+			if Text ~= "" then
+				Text = Text.." ["..math.floor(Distance).."m]"
+			else
+				Text = "["..math.floor(Distance).."m]"
+			end
+		end
+
+		Data.Text.Text = Text
+		Data.Highlight.Enabled = true
+		Data.Billboard.Enabled = true
+	end
 end
 
 --==================================================
--- PLAYER ESP
+-- ITEM EVENTS
 --==================================================
 
-local function UpdatePlayerESP()
+workspace.DescendantAdded:Connect(function(Object)
+	if Config.ItemESPEnabled then
+		task.defer(function()
+			CreateItemESP(Object)
+		end)
+	end
+end)
 
-    for _, player in ipairs(
-        Players:GetPlayers()
-    ) do
+workspace.DescendantRemoving:Connect(function(Object)
+	if ItemESP[Object] then
+		RemoveItemESP(Object)
+	end
+end)
 
-        if player ~= LocalPlayer then
+--==================================================
+-- EQUIPPED WEAPON ESP
+--==================================================
 
-            local character =
-                player.Character
+local WeaponESP = {}
 
-            if character
-                and Config.PlayerESP.Enabled then
+local function RemoveWeaponESP(Object)
+	local Data = WeaponESP[Object]
 
-                local target
+	if not Data then
+		return
+	end
 
-                if Config.PlayerESP.Head then
+	if Data.Highlight then
+		Data.Highlight:Destroy()
+	end
 
-                    target =
-                        character:FindFirstChild(
-                            "Head"
-                        )
+	if Data.Billboard then
+		Data.Billboard:Destroy()
+	end
 
-                elseif Config.PlayerESP.Chest then
-
-                    target =
-                        character:FindFirstChild(
-                            "UpperTorso"
-                        )
-                        or
-                        character:FindFirstChild(
-                            "Torso"
-                        )
-
-                elseif Config.PlayerESP.Torso then
-
-                    target =
-                        character:FindFirstChild(
-                            "Torso"
-                        )
-
-                end
-
-                if target then
-
-                    local distance = 0
-
-                    if LocalPlayer.Character then
-
-                        local root1 =
-                            LocalPlayer.Character:
-                            FindFirstChild(
-                                "HumanoidRootPart"
-                            )
-
-                        local root2 =
-                            character:
-                            FindFirstChild(
-                                "HumanoidRootPart"
-                            )
-
-                        if root1 and root2 then
-
-                            distance =
-                                math.floor(
-                                    (
-                                        root1.Position
-                                        -
-                                        root2.Position
-                                    ).Magnitude
-                                )
-
-                        end
-
-                    end
-
-                    local text = ""
-
-                    if Config.PlayerESP.Name then
-
-                        text =
-                            player.Name
-
-                    end
-
-                    if Config.PlayerESP.Distance then
-
-                        if text ~= "" then
-
-                            text =
-                                text
-                                ..
-                                " ["
-                                ..
-                                distance
-                                ..
-                                "m]"
-
-                        else
-
-                            text =
-                                "["
-                                ..
-                                distance
-                                ..
-                                "m]"
-
-                        end
-
-                    end
-
-                    CreateESP(
-                        target,
-                        text
-                    )
-
-                end
-
-            end
-
-        end
-
-    end
-
+	WeaponESP[Object] = nil
 end
+
+local function CreateWeaponESP(Object)
+	if not Object:IsA("Tool") then
+		return
+	end
+
+	if WeaponESP[Object] then
+		return
+	end
+
+	local Character = Object.Parent
+
+	if not Character
+		or not Character:IsA("Model")
+		or not Players:GetPlayerFromCharacter(Character) then
+		return
+	end
+
+	local Handle =
+		Object:FindFirstChild("Handle")
+		or Object:FindFirstChildWhichIsA("BasePart",true)
+
+	if not Handle then
+		return
+	end
+
+	local Highlight = Instance.new("Highlight")
+	Highlight.Name = "3VEXXCRYPT_WeaponESP"
+	Highlight.FillTransparency = 0.8
+	Highlight.OutlineTransparency = 0
+	Highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+	Highlight.Adornee = Object
+	Highlight.Parent = Object
+
+	local Billboard = Instance.new("BillboardGui")
+	Billboard.Name = "3VEXXCRYPT_WeaponInfo"
+	Billboard.Size = UDim2.new(0,140,0,22)
+	Billboard.StudsOffset = Vector3.new(0,2,0)
+	Billboard.AlwaysOnTop = true
+	Billboard.Adornee = Handle
+	Billboard.Parent = Object
+
+	local Text = Instance.new("TextLabel")
+	Text.Size = UDim2.new(1,0,1,0)
+	Text.BackgroundTransparency = 1
+	Text.TextColor3 = Color3.new(1,1,1)
+	Text.TextStrokeTransparency = 0.5
+	Text.TextSize = 8
+	Text.Font = Enum.Font.GothamBold
+	Text.Text = Object.Name
+	Text.Parent = Billboard
+
+	WeaponESP[Object] = {
+		Highlight = Highlight,
+		Billboard = Billboard,
+		Text = Text,
+		Handle = Handle
+	}
+end
+
+local function UpdateWeaponESP()
+	for Object,Data in pairs(WeaponESP) do
+		if not Object.Parent then
+			RemoveWeaponESP(Object)
+			continue
+		end
+
+		local Character = Object.Parent
+		local IsEquipped =
+			Character
+			and Character:IsA("Model")
+			and Players:GetPlayerFromCharacter(Character)
+
+		if not Config.WeaponESPEnabled or not IsEquipped then
+			Data.Highlight.Enabled = false
+			Data.Billboard.Enabled = false
+			continue
+		end
+
+		local Handle = Data.Handle
+
+		if not Handle or not Handle.Parent then
+			Data.Highlight.Enabled = false
+			Data.Billboard.Enabled = false
+			continue
+		end
+
+		local Distance =
+			(Handle.Position - Camera.CFrame.Position).Magnitude
+
+		Data.Text.Text =
+			Object.Name.." ["..math.floor(Distance).."m]"
+
+		Data.Highlight.Enabled = true
+		Data.Billboard.Enabled = true
+	end
+end
+
+workspace.DescendantAdded:Connect(function(Object)
+	if Object:IsA("Tool") then
+		task.defer(function()
+			CreateWeaponESP(Object)
+		end)
+	end
+end)
+
+workspace.DescendantRemoving:Connect(function(Object)
+	if WeaponESP[Object] then
+		RemoveWeaponESP(Object)
+	end
+end)
 
 --==================================================
 -- AIM ASSIST
 --==================================================
 
-local function GetClosestPlayer()
+local function IsEnemy(Player)
+	if not Config.TeamCheck then
+		return true
+	end
 
-    local closest = nil
+	if not LocalPlayer.Team or not Player.Team then
+		return true
+	end
 
-    local closestDistance =
-        Config.Aimbot.FOV
+	return Player.Team ~= LocalPlayer.Team
+end
 
-    local mousePosition =
-        UserInputService:GetMouseLocation()
+local function GetTargetPart(Character)
+	local Part = Character:FindFirstChild(Config.TargetPart)
 
-    for _, player in ipairs(
-        Players:GetPlayers()
-    ) do
+	if not Part and Config.TargetPart == "UpperTorso" then
+		Part = Character:FindFirstChild("Torso")
+	end
 
-        if player ~= LocalPlayer then
+	return Part
+end
 
-            local character =
-                player.Character
+local function IsVisible(Part)
+	if not Config.VisibleCheck then
+		return true
+	end
 
-            if character then
+	local Origin = Camera.CFrame.Position
+	local Direction = Part.Position - Origin
 
-                local part =
-                    character:FindFirstChild(
-                        Config.Aimbot.TargetPart
-                    )
+	local Params = RaycastParams.new()
+	Params.FilterType = Enum.RaycastFilterType.Exclude
+	Params.FilterDescendantsInstances = {
+		LocalPlayer.Character
+	}
 
-                if part then
+	local Result =
+		workspace:Raycast(
+			Origin,
+			Direction,
+			Params
+		)
 
-                    local screenPosition,
-                        visible =
-                        Camera:WorldToViewportPoint(
-                            part.Position
-                        )
+	if not Result then
+		return true
+	end
 
-                    if visible then
+	return Result.Instance:IsDescendantOf(Part.Parent)
+end
 
-                        local distance =
-                            (
-                                Vector2.new(
-                                    screenPosition.X,
-                                    screenPosition.Y
-                                )
-                                -
-                                mousePosition
-                            ).Magnitude
+local function GetClosestTarget()
+	local Closest
+	local ClosestDistance = Config.FOV
 
-                        if distance <
-                            closestDistance then
+	for _,Player in ipairs(Players:GetPlayers()) do
+		if Player ~= LocalPlayer and IsEnemy(Player) then
 
-                            closestDistance =
-                                distance
+			local Character = Player.Character
 
-                            closest = part
+			if Character then
+				local Humanoid =
+					Character:FindFirstChildOfClass("Humanoid")
 
-                        end
+				local Root =
+					Character:FindFirstChild("HumanoidRootPart")
 
-                    end
+				local Part =
+					GetTargetPart(Character)
 
-                end
+				if Humanoid
+					and Humanoid.Health > 0
+					and Root
+					and Part then
 
-            end
+					local Distance =
+						(Root.Position - Camera.CFrame.Position).Magnitude
 
-        end
+					if Distance <= Config.MaxDistance then
 
-    end
+						local ScreenPosition,OnScreen =
+							Camera:WorldToViewportPoint(Part.Position)
 
-    return closest
+						if OnScreen then
 
+							local Center =
+								Vector2.new(
+									Camera.ViewportSize.X/2,
+									Camera.ViewportSize.Y/2
+								)
+
+							local Position =
+								Vector2.new(
+									ScreenPosition.X,
+									ScreenPosition.Y
+								)
+
+							local FOVDistance =
+								(Position-Center).Magnitude
+
+							if FOVDistance <= ClosestDistance
+								and IsVisible(Part) then
+
+								ClosestDistance = FOVDistance
+								Closest = Part
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+
+	return Closest
 end
 
 --==================================================
--- MAIN LOOP
+-- TARGET
 --==================================================
 
-RunService.RenderStepped:Connect(
-    function()
+local function NextTarget()
+	Config.TargetPartIndex += 1
 
-        -- AIM
+	if Config.TargetPartIndex > #Config.TargetParts then
+		Config.TargetPartIndex = 1
+	end
 
-        if Config.Aimbot.Enabled then
+	Config.TargetPart =
+		Config.TargetParts[Config.TargetPartIndex]
 
-            local target =
-                GetClosestPlayer()
+	local Display = GetTargetDisplayName()
 
-            if target then
-
-                local cameraPosition =
-                    Camera.CFrame.Position
-
-                local desired =
-                    CFrame.lookAt(
-                        cameraPosition,
-                        target.Position
-                    )
-
-                Camera.CFrame =
-                    Camera.CFrame:Lerp(
-                        desired,
-                        Config.Aimbot.Smoothness
-                    )
-
-            end
-
-        end
-
-        -- PLAYER ESP
-
-        UpdatePlayerESP()
-
-        -- LINE ESP
-
-        UpdateLines()
-
-        -- WEAPON ESP
-
-        ScanWeapons()
-
-    end
-)
+	TargetButton.Text = "Objetivo: "..Display
+	Status.Text = "3VEXXCRYPT | "..Display
+end
 
 --==================================================
--- NEW OBJECTS
+-- BUTTONS
 --==================================================
 
-workspace.DescendantAdded:Connect(
-    function(object)
+AimButton.MouseButton1Click:Connect(function()
+	Config.Enabled = not Config.Enabled
 
-        task.wait()
+	AimButton.Text =
+		"Aim Assist: "..(Config.Enabled and "ON" or "OFF")
+end)
 
-        if Weapons[object.Name] then
+TargetButton.MouseButton1Click:Connect(function()
+	NextTarget()
+end)
 
-            if Config.WeaponESP.Enabled then
+FOVButton.MouseButton1Click:Connect(function()
+	if Config.FOV == 120 then
+		Config.FOV = 180
+	elseif Config.FOV == 180 then
+		Config.FOV = 250
+	else
+		Config.FOV = 120
+	end
 
-                CreateESP(
-                    object,
-                    "🔫 " .. object.Name
-                )
+	FOVButton.Text = "FOV: "..Config.FOV
+end)
 
-            end
+StrengthButton.MouseButton1Click:Connect(function()
+	if Config.Strength == 0.18 then
+		Config.Strength = 0.30
+	elseif Config.Strength == 0.30 then
+		Config.Strength = 0.50
+	else
+		Config.Strength = 0.18
+	end
 
-        end
+	StrengthButton.Text =
+		"Strength: "..math.floor(Config.Strength*100).."%"
+end)
 
-    end
-)
+TeamButton.MouseButton1Click:Connect(function()
+	Config.TeamCheck = not Config.TeamCheck
+
+	TeamButton.Text =
+		"Team Check: "..(Config.TeamCheck and "ON" or "OFF")
+end)
+
+VisibleButton.MouseButton1Click:Connect(function()
+	Config.VisibleCheck = not Config.VisibleCheck
+
+	VisibleButton.Text =
+		"Visible Check: "..(Config.VisibleCheck and "ON" or "OFF")
+end)
+
+ESPButton.MouseButton1Click:Connect(function()
+	Config.ESPEnabled = not Config.ESPEnabled
+
+	ESPButton.Text =
+		"Player ESP: "..(Config.ESPEnabled and "ON" or "OFF")
+
+	for _,Player in ipairs(Players:GetPlayers()) do
+		if Player ~= LocalPlayer then
+			if Config.ESPEnabled then
+				CreatePlayerESP(Player)
+			end
+		end
+	end
+end)
+
+ItemButton.MouseButton1Click:Connect(function()
+	Config.ItemESPEnabled = not Config.ItemESPEnabled
+
+	ItemButton.Text =
+		"Item ESP: "..(Config.ItemESPEnabled and "ON" or "OFF")
+
+	if Config.ItemESPEnabled then
+		task.spawn(function()
+			for _,Object in ipairs(workspace:GetDescendants()) do
+				if Object:IsA("Model") or Object:IsA("BasePart") then
+					CreateItemESP(Object)
+				end
+			end
+		end)
+	end
+end)
+
+WeaponButton.MouseButton1Click:Connect(function()
+	Config.WeaponESPEnabled = not Config.WeaponESPEnabled
+
+	WeaponButton.Text =
+		"Weapon ESP: "..(Config.WeaponESPEnabled and "ON" or "OFF")
+
+	if Config.WeaponESPEnabled then
+		for _,Player in ipairs(Players:GetPlayers()) do
+			if Player.Character then
+				for _,Object in ipairs(Player.Character:GetChildren()) do
+					CreateWeaponESP(Object)
+				end
+			end
+		end
+	end
+end)
+
+LineButton.MouseButton1Click:Connect(function()
+	Config.LineESPEnabled = not Config.LineESPEnabled
+
+	LineButton.Text =
+		"Line ESP: "..(Config.LineESPEnabled and "ON" or "OFF")
+end)
 
 --==================================================
--- PLAYER JOIN / LEAVE
+-- OPEN / CLOSE
 --==================================================
 
-Players.PlayerRemoving:Connect(
-    function(player)
+OpenButton.MouseButton1Click:Connect(function()
+	Main.Visible = true
+	OpenButton.Visible = false
+end)
 
-        RemoveLine(player)
-
-    end
-)
+Close.MouseButton1Click:Connect(function()
+	Main.Visible = false
+	OpenButton.Visible = true
+end)
 
 --==================================================
--- CLEANUP
+-- PLAYERS
 --==================================================
 
-workspace.DescendantRemoving:Connect(
-    function(object)
+local function SetupPlayer(Player)
+	if Player == LocalPlayer then
+		return
+	end
 
-        RemoveESP(object)
+	CreateLineESP(Player)
 
-    end
-)
+	Player.CharacterAdded:Connect(function()
+		task.wait(0.5)
 
-print(
-    "3VEXXCRYPT cargado correctamente."
-)
+		if Config.ESPEnabled then
+			CreatePlayerESP(Player)
+		end
+	end)
+end
+
+for _,Player in ipairs(Players:GetPlayers()) do
+	SetupPlayer(Player)
+end
+
+Players.PlayerAdded:Connect(SetupPlayer)
+
+Players.PlayerRemoving:Connect(function(Player)
+	RemovePlayerESP(Player)
+	RemoveLineESP(Player)
+end)
+
+--==================================================
+-- DRAG
+--==================================================
+
+local Dragging = false
+local DragStart
+local StartPosition
+
+Title.InputBegan:Connect(function(Input)
+	if Input.UserInputType == Enum.UserInputType.MouseButton1
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		Dragging = true
+		DragStart = Input.Position
+		StartPosition = Main.Position
+
+		Input.Changed:Connect(function()
+			if Input.UserInputState == Enum.UserInputState.End then
+				Dragging = false
+			end
+		end)
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(Input)
+	if not Dragging then
+		return
+	end
+
+	if Input.UserInputType == Enum.UserInputType.MouseMovement
+		or Input.UserInputType == Enum.UserInputType.Touch then
+
+		local Delta =
+			Input.Position - DragStart
+
+		Main.Position =
+			UDim2.new(
+				StartPosition.X.Scale,
+				StartPosition.X.Offset + Delta.X,
+
+				StartPosition.Y.Scale,
+				StartPosition.Y.Offset + Delta.Y
+			)
+	end
+end)
+
+--==================================================
+-- KEYBINDS
+--==================================================
+
+UserInputService.InputBegan:Connect(function(Input,GameProcessed)
+	if GameProcessed then
+		return
+	end
+
+	if Input.KeyCode == Config.ToggleKey then
+		Config.Enabled = not Config.Enabled
+
+		AimButton.Text =
+			"Aim Assist: "..(Config.Enabled and "ON" or "OFF")
+	end
+
+	if Input.KeyCode == Config.TargetPartToggleKey then
+		NextTarget()
+	end
+end)
+
+--==================================================
+-- OPTIMIZED UPDATE
+--==================================================
+
+local ESPTimer = 0
+
+RunService.RenderStepped:Connect(function(Delta)
+	-- FOV
+	FOVCircle.Visible = Config.ShowFOV
+
+	FOVCircle.Size =
+		UDim2.new(
+			0,
+			Config.FOV*2,
+			0,
+			Config.FOV*2
+		)
+
+	-- ESP no necesita reconstruirse cada frame
+	ESPTimer += Delta
+
+	if ESPTimer >= 0.08 then
+		ESPTimer = 0
+
+		UpdatePlayerESP()
+		UpdateItemESP()
+		UpdateWeaponESP()
+	end
+
+	-- Line ESP necesita posición actual
+	UpdateLineESP()
+
+	-- AIM
+	if Config.Enabled then
+		local Target = GetClosestTarget()
+
+		if Target then
+			local CameraPosition =
+				Camera.CFrame.Position
+
+			local TargetCFrame =
+				CFrame.lookAt(
+					CameraPosition,
+					Target.Position
+				)
+
+			Camera.CFrame =
+				Camera.CFrame:Lerp(
+					TargetCFrame,
+					Config.Strength
+				)
+		end
+	end
+end)
