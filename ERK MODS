@@ -1,7 +1,3 @@
---// 3VEXXCRYPT AIM ASSIST + ESP
---// Roblox Studio - LocalScript
---// Tu lógica original + menú táctil + ESP
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
