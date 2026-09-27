@@ -1,7 +1,3 @@
---// 3VEXXCRYPT AIM ASSIST + PLAYER ESP + WEAPON ESP
---// Roblox Studio - LocalScript
---// Para tu propio juego
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
