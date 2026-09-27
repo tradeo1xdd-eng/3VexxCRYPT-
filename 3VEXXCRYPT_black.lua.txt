@@ -1,0 +1,1615 @@
+-- ═══════════════════════════════════════════════════════
+--  PRIMOS DEV LEAK BY Z8KM - SCRIPT v13.9.4 (FOV ESTÁNDAR CORREGIDO & VISIBLE)
+-- ═══════════════════════════════════════════════════════
+
+print("🔄 Iniciando PRIMOS DEV v13.9.4...")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local DroppedItems = Workspace:WaitForChild("DroppedItems")
+
+if not Drawing then
+    warn("❌ Executor no soporta API de dibujo")
+    return
+end
+
+local function Notify(title, text, duration)
+    duration = duration or 3
+    pcall(function()
+        StarterGui:SetCore("SendNotification", { Title = title, Text = text, Duration = duration })
+    end)
+end
+
+-- ===================== CONFIGURACIÓN & AUTOGUARDADO =====================
+local ConfigFileName = "PrimosDev_Config.json"
+
+local Settings = {
+    AimbotEnabled = false,
+    AimbotActive = false,
+    AimKey = Enum.KeyCode.Q,
+    ResetLockKey = Enum.KeyCode.G,
+    AimPart = "DynamicHitbox",
+    VehicleAimPart = "Head",
+    FOV = 180,
+    MaxDistance = 300,
+    ShowFOV = true,
+    ShowTracer = false,
+    NoRecoil = true,
+    NoSpread = true,
+    WallCheck = false,
+}
+
+local PlayerESP = true
+local NameESP = true
+local DistanceESP = true
+local HealthESP = true
+local WeaponESP = true
+local UPDATE_DELAY = 0.033
+local ExcludedPlayers = {}
+local AutoDetectFriends = true
+
+local InventoryViewerEnabled = false
+local HideNameEnabled = true
+local autoBloodActive = false
+local skipCrateEnabled = false
+local autoMinigameEnabled = false
+local fpsBoostEnabled = false
+local droppedESPEnabled = false
+local autoPickupEnabled = false
+local FAKE_NAME = "PRIMOS"
+
+-- Función de Guardado Automático Instantáneo
+local function SaveConfig()
+    if not writefile then return end
+    pcall(function()
+        local data = {
+            Settings = {
+                AimbotEnabled = Settings.AimbotEnabled,
+                AimKey = Settings.AimKey.Name,
+                AimPart = Settings.AimPart,
+                VehicleAimPart = Settings.VehicleAimPart,
+                FOV = Settings.FOV,
+                MaxDistance = Settings.MaxDistance,
+                ShowFOV = Settings.ShowFOV,
+                ShowTracer = Settings.ShowTracer,
+                NoRecoil = Settings.NoRecoil,
+                NoSpread = Settings.NoSpread,
+                WallCheck = Settings.WallCheck,
+            },
+            Visuals = {
+                PlayerESP = PlayerESP,
+                NameESP = NameESP,
+                DistanceESP = DistanceESP,
+                HealthESP = HealthESP,
+                WeaponESP = WeaponESP,
+                InventoryViewer = InventoryViewerEnabled,
+                HideName = HideNameEnabled,
+                AutoDetectFriends = AutoDetectFriends,
+            },
+            Combat = {
+                AutoBlood = autoBloodActive,
+                AutoMinigame = autoMinigameEnabled,
+                SkipCrate = skipCrateEnabled,
+            },
+            Extras = {
+                FPSBoost = fpsBoostEnabled,
+                DroppedESP = droppedESPEnabled,
+                AutoPickup = autoPickupEnabled,
+            }
+        }
+        writefile(ConfigFileName, HttpService:JSONEncode(data))
+    end)
+end
+
+-- Función para cargar la configuración guardada
+local function LoadConfig()
+    if not isfile or not readfile then return end
+    pcall(function()
+        if isfile(ConfigFileName) then
+            local decoded = HttpService:JSONDecode(readfile(ConfigFileName))
+            if decoded and decoded.Settings then
+                local s = decoded.Settings
+                Settings.AimbotEnabled = s.AimbotEnabled or Settings.AimbotEnabled
+                if s.AimKey and Enum.KeyCode[s.AimKey] then Settings.AimKey = Enum.KeyCode[s.AimKey] end
+                Settings.AimPart = s.AimPart or Settings.AimPart
+                Settings.VehicleAimPart = s.VehicleAimPart or Settings.VehicleAimPart
+                Settings.FOV = s.FOV or Settings.FOV
+                Settings.MaxDistance = s.MaxDistance or Settings.MaxDistance
+                Settings.ShowFOV = s.ShowFOV ~= nil and s.ShowFOV or Settings.ShowFOV
+                Settings.ShowTracer = s.ShowTracer ~= nil and s.ShowTracer or Settings.ShowTracer
+                Settings.NoRecoil = s.NoRecoil ~= nil and s.NoRecoil or Settings.NoRecoil
+                Settings.NoSpread = s.NoSpread ~= nil and s.NoSpread or Settings.NoSpread
+                Settings.WallCheck = s.WallCheck ~= nil and s.WallCheck or Settings.WallCheck
+            end
+            if decoded and decoded.Visuals then
+                local v = decoded.Visuals
+                PlayerESP = v.PlayerESP ~= nil and v.PlayerESP or PlayerESP
+                NameESP = v.NameESP ~= nil and v.NameESP or NameESP
+                DistanceESP = v.DistanceESP ~= nil and v.DistanceESP or DistanceESP
+                HealthESP = v.HealthESP ~= nil and v.HealthESP or HealthESP
+                WeaponESP = v.WeaponESP ~= nil and v.WeaponESP or WeaponESP
+                InventoryViewerEnabled = v.InventoryViewer ~= nil and v.InventoryViewer or InventoryViewerEnabled
+                HideNameEnabled = v.HideName ~= nil and v.HideName or HideNameEnabled
+                AutoDetectFriends = v.AutoDetectFriends ~= nil and v.AutoDetectFriends or AutoDetectFriends
+            end
+            if decoded and decoded.Combat then
+                local c = decoded.Combat
+                autoBloodActive = c.AutoBlood ~= nil and c.AutoBlood or autoBloodActive
+                autoMinigameEnabled = c.AutoMinigame ~= nil and c.AutoMinigame or autoMinigameEnabled
+                skipCrateEnabled = c.SkipCrate ~= nil and c.SkipCrate or skipCrateEnabled
+            end
+            if decoded and decoded.Extras then
+                local e = decoded.Extras
+                fpsBoostEnabled = e.FPSBoost ~= nil and e.FPSBoost or fpsBoostEnabled
+                droppedESPEnabled = e.DroppedESP ~= nil and e.DroppedESP or droppedESPEnabled
+                autoPickupEnabled = e.AutoPickup ~= nil and e.AutoPickup or autoPickupEnabled
+            end
+        end
+    end)
+end
+
+LoadConfig()
+
+local FriendFakeNames = {
+    "Bro", "Squad", "Ally", "Team1", "Partner", 
+    "Mate", "Friend", "Compa", "Homie", "Dude",
+    "Buddy", "Pal", "Crew", "Gang", "Fam"
+}
+local PlayerFakeNames = {}
+
+local Colors = {
+    BG = Color3.fromRGB(5, 5, 5),
+    BGSecondary = Color3.fromRGB(10, 10, 10),
+    BGLight = Color3.fromRGB(18, 18, 18),
+    Border = Color3.fromRGB(35, 35, 35),
+    Text = Color3.fromRGB(245, 245, 245),
+    TextDim = Color3.fromRGB(145, 145, 145),
+    TextAccent = Color3.fromRGB(220, 220, 220),
+    Active = Color3.fromRGB(30, 30, 30),
+    Accent = Color3.fromRGB(255, 255, 255),
+    FriendColor = Color3.fromRGB(180, 255, 190),
+    ESPColor = Color3.fromRGB(255, 255, 255),
+    LockColor = Color3.fromRGB(255, 255, 255),
+    LED_On = Color3.fromRGB(255, 255, 255),
+    LED_Off = Color3.fromRGB(55, 55, 55),
+}
+
+local currentTarget = nil
+local menuOpen = false
+local ESP_Data = {}
+local lockedTarget = nil
+
+local lockLine = Drawing.new("Line")
+lockLine.Visible = false
+lockLine.Thickness = 2
+lockLine.Color = Colors.LockColor
+lockLine.Transparency = 0.7
+
+-- ===================== 🎬 SPLASH SCREEN =====================
+local splashBg = Drawing.new("Square")
+splashBg.Size = Vector2.new(Camera.ViewportSize.X, Camera.ViewportSize.Y)
+splashBg.Position = Vector2.new(0, 0)
+splashBg.Color = Color3.fromRGB(10, 8, 20)
+splashBg.Filled = true
+splashBg.Visible = true
+
+local splashTitle = Drawing.new("Text")
+splashTitle.Size = 72; splashTitle.Center = true; splashTitle.Outline = true
+splashTitle.Color = Color3.fromRGB(139, 92, 246)
+splashTitle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2 - 40)
+splashTitle.Visible = true; splashTitle.Text = "3VEXXCRYPT"
+
+local splashSubtitle = Drawing.new("Text")
+splashSubtitle.Size = 24; splashSubtitle.Center = true; splashSubtitle.Outline = true
+splashSubtitle.Color = Color3.fromRGB(6, 182, 212)
+splashSubtitle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2 + 30)
+splashSubtitle.Visible = true; splashSubtitle.Text = "v13.9.4 • FOV Corregido"
+
+local splashLine = Drawing.new("Line")
+splashLine.From = Vector2.new(Camera.ViewportSize.X / 2 - 100, Camera.ViewportSize.Y / 2 + 60)
+splashLine.To = Vector2.new(Camera.ViewportSize.X / 2 + 100, Camera.ViewportSize.Y / 2 + 60)
+splashLine.Thickness = 2
+splashLine.Color = Color3.fromRGB(139, 92, 246)
+splashLine.Visible = true
+
+task.spawn(function()
+    local hue = 0
+    while splashTitle.Visible do
+        hue = (hue + 0.015) % 1
+        splashTitle.Color = Color3.fromHSV(hue * 0.3 + 0.7, 0.8, 1)
+        splashLine.Color = Color3.fromHSV(hue * 0.3 + 0.5, 0.9, 1)
+        task.wait(0.05)
+    end
+end)
+task.delay(3.5, function() splashTitle.Visible = false; splashSubtitle.Visible = false; splashLine.Visible = false; splashBg.Visible = false end)
+
+-- ===================== CÍRCULO FOV ESTÁNDAR REFORZADO =====================
+local StandardFOV = Drawing.new("Circle")
+StandardFOV.Visible = Settings.ShowFOV
+StandardFOV.Filled = false
+StandardFOV.Thickness = 2
+StandardFOV.Color = Color3.fromRGB(139, 92, 246)
+StandardFOV.Transparency = 0.9
+StandardFOV.Radius = Settings.FOV
+StandardFOV.NumSides = 60
+StandardFOV.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+local TracerLine = Drawing.new("Line")
+TracerLine.Visible = false; TracerLine.Thickness = 1.5
+TracerLine.Color = Color3.fromRGB(6, 182, 212); TracerLine.Transparency = 0.7
+
+-- ===================== 🎨 GUI PRIMOS DEV =====================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "PrimosDev_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+local MainPanel = Instance.new("Frame")
+MainPanel.Size = UDim2.new(0, 380, 0, 480)
+MainPanel.Position = UDim2.new(0.5, -190, 0.5, -240)
+MainPanel.BackgroundColor3 = Colors.BG
+MainPanel.BackgroundTransparency = 0.05
+MainPanel.BorderSizePixel = 0
+MainPanel.Visible = false
+MainPanel.Parent = ScreenGui
+Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 16)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(139, 92, 246)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainPanel
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(139, 92, 246)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(6, 182, 212)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(139, 92, 246))
+}
+MainGradient.Rotation = 45
+MainGradient.Parent = MainStroke
+
+task.spawn(function()
+    while true do
+        for i = 0, 1, 0.008 do
+            MainGradient.Offset = Vector2.new(i, i * 0.5)
+            task.wait(0.04)
+        end
+    end
+end)
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 55)
+Header.BackgroundColor3 = Colors.BGSecondary
+Header.BorderSizePixel = 0
+Header.Parent = MainPanel
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 16)
+
+local LogoLabel = Instance.new("TextLabel")
+LogoLabel.Size = UDim2.new(1, -60, 1, 0)
+LogoLabel.Position = UDim2.new(0, 16, 0, 0)
+LogoLabel.BackgroundTransparency = 1
+LogoLabel.Text = "3VEXXCRYPT"
+LogoLabel.TextColor3 = Colors.Text
+LogoLabel.TextSize = 18
+LogoLabel.Font = Enum.Font.GothamBold
+LogoLabel.TextXAlignment = Enum.TextXAlignment.Left
+LogoLabel.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Position = UDim2.new(1, -40, 0.5, -16)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 90)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = Header
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
+
+local Tabs = Instance.new("Frame")
+Tabs.Size = UDim2.new(1, -24, 0, 40)
+Tabs.Position = UDim2.new(0, 12, 0, 60)
+Tabs.BackgroundColor3 = Colors.BGSecondary
+Tabs.ClipsDescendants = true
+Tabs.Parent = MainPanel
+Instance.new("UICorner", Tabs).CornerRadius = UDim.new(0, 12)
+
+local function createTab(name, xPos, isActive)
+    local tab = Instance.new("TextButton")
+    tab.Size = UDim2.new(0.24, 0, 1, -8)
+    tab.Position = UDim2.new(xPos, 0, 0, 4)
+    tab.BackgroundColor3 = isActive and Colors.Active or Colors.BGLight
+    tab.Text = name
+    tab.TextColor3 = isActive and Color3.fromRGB(255, 255, 255) or Colors.Text
+    tab.TextSize = 12
+    tab.Font = Enum.Font.GothamBold
+    tab.BorderSizePixel = 0
+    tab.Parent = Tabs
+    Instance.new("UICorner", tab).CornerRadius = UDim.new(0, 10)
+    return tab
+end
+
+local VisualTab = createTab("👁️ VISUAL", 0.01, true)
+local AimTab = createTab("🎯 AIMBOT", 0.26, false)
+local BloodTab = createTab("💉 BLOOD", 0.51, false)
+local ServiciosTab = createTab("⚙️ EXTRAS", 0.76, false)
+
+local function createFrame()
+    local f = Instance.new("ScrollingFrame")
+    f.Size = UDim2.new(1, -20, 1, -110)
+    f.Position = UDim2.new(0, 10, 0, 105)
+    f.BackgroundTransparency = 1
+    f.BorderSizePixel = 0
+    f.ScrollBarThickness = 4
+    f.ScrollBarImageColor3 = Colors.Active
+    f.CanvasSize = UDim2.new(0, 0, 0, 950)
+    f.Visible = false
+    f.Parent = MainPanel
+    Instance.new("UIListLayout", f).Padding = UDim.new(0, 8)
+    return f
+end
+
+local VisualFrame = createFrame(); VisualFrame.Visible = true; VisualFrame.CanvasSize = UDim2.new(0, 0, 0, 1150)
+local AimFrame = createFrame(); AimFrame.CanvasSize = UDim2.new(0, 0, 0, 950)
+local BloodFrame = createFrame(); BloodFrame.CanvasSize = UDim2.new(0, 0, 0, 1000)
+local ServiciosFrame = createFrame(); ServiciosFrame.CanvasSize = UDim2.new(0, 0, 0, 600)
+
+local function switchTab(activeTab, activeFrame)
+    for _, tab in ipairs({VisualTab, AimTab, BloodTab, ServiciosTab}) do
+        tab.BackgroundColor3 = (tab == activeTab) and Colors.Active or Colors.BGLight
+        tab.TextColor3 = (tab == activeTab) and Color3.fromRGB(255, 255, 255) or Colors.Text
+    end
+    for _, frame in ipairs({VisualFrame, AimFrame, BloodFrame, ServiciosFrame}) do
+        frame.Visible = (frame == activeFrame)
+    end
+end
+
+VisualTab.MouseButton1Click:Connect(function() switchTab(VisualTab, VisualFrame) end)
+AimTab.MouseButton1Click:Connect(function() switchTab(AimTab, AimFrame) end)
+BloodTab.MouseButton1Click:Connect(function() switchTab(BloodTab, BloodFrame) end)
+ServiciosTab.MouseButton1Click:Connect(function() switchTab(ServiciosTab, ServiciosFrame) end)
+
+local panelDragging, panelDragStart, panelStartPos = false, nil, nil
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        panelDragging = true; panelDragStart = input.Position; panelStartPos = MainPanel.Position
+    end
+end)
+Header.InputChanged:Connect(function(input)
+    if panelDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputState == Enum.UserInputState.Change then
+            local delta = input.Position - panelDragStart
+            MainPanel.Position = UDim2.new(panelStartPos.X.Scale, panelStartPos.X.Offset + delta.X, panelStartPos.Y.Scale, panelStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+Header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then panelDragging = false end
+end)
+
+local CircleButton = Instance.new("Frame")
+CircleButton.Size = UDim2.new(0, 64, 0, 64)
+CircleButton.Position = UDim2.new(0, 20, 0.5, -32)
+CircleButton.BackgroundColor3 = Colors.BGSecondary
+CircleButton.BorderSizePixel = 0
+CircleButton.Parent = ScreenGui
+Instance.new("UICorner", CircleButton).CornerRadius = UDim.new(0, 16)
+local CircleStroke = Instance.new("UIStroke"); CircleStroke.Color = Colors.Active; CircleStroke.Thickness = 2.5; CircleStroke.Parent = CircleButton
+local CircleGradient = Instance.new("UIGradient")
+CircleGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(139, 92, 246)), ColorSequenceKeypoint.new(1, Color3.fromRGB(6, 182, 212))}
+CircleGradient.Rotation = 135; CircleGradient.Parent = CircleStroke
+local CircleIcon = Instance.new("TextLabel")
+CircleIcon.Size = UDim2.new(1, 0, 1, 0); CircleIcon.BackgroundTransparency = 1
+CircleIcon.Text = "💜"; CircleIcon.TextColor3 = Colors.Text; CircleIcon.TextSize = 28; CircleIcon.Font = Enum.Font.GothamBold; CircleIcon.Parent = CircleButton
+
+local circleDragging, circleDragStart, circleStartPos, circleClickTime = false, nil, nil, 0
+CircleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        circleDragging = true; circleClickTime = tick(); circleDragStart = input.Position; circleStartPos = CircleButton.Position
+    end
+end)
+CircleButton.InputChanged:Connect(function(input)
+    if circleDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputState == Enum.UserInputState.Change then
+            local delta = input.Position - circleDragStart
+            CircleButton.Position = UDim2.new(circleStartPos.X.Scale, circleStartPos.X.Offset + delta.X, circleStartPos.Y.Scale, circleStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+CircleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        circleDragging = false
+        if tick() - circleClickTime < 0.25 then menuOpen = not menuOpen; MainPanel.Visible = menuOpen end
+    end
+end)
+
+-- ===================== BOTÓN FLOTANTE DE AIMBOT =====================
+local MobileAimBtn = Instance.new("TextButton")
+MobileAimBtn.Size = UDim2.new(0, 70, 0, 70)
+MobileAimBtn.Position = UDim2.new(1, -90, 1, -190)
+MobileAimBtn.BackgroundColor3 = Colors.BGSecondary
+MobileAimBtn.BackgroundTransparency = 0.15
+MobileAimBtn.BorderSizePixel = 0
+MobileAimBtn.Text = "OFF"
+MobileAimBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+MobileAimBtn.TextSize = 16
+MobileAimBtn.Font = Enum.Font.GothamBold
+MobileAimBtn.Parent = ScreenGui
+Instance.new("UICorner", MobileAimBtn).CornerRadius = UDim.new(0, 20)
+local MobileBtnStroke = Instance.new("UIStroke"); MobileBtnStroke.Color = Colors.LED_Off; MobileBtnStroke.Thickness = 2.5; MobileBtnStroke.Parent = MobileAimBtn
+
+local function UpdateMobileBtnVisuals()
+    if Settings.AimbotActive then
+        MobileAimBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
+        MobileBtnStroke.Color = Colors.LED_On
+        MobileAimBtn.Text = "ON"
+        MobileAimBtn.TextColor3 = Colors.FriendColor
+        MobileAimBtn.BackgroundTransparency = 0.05
+    else
+        MobileAimBtn.BackgroundColor3 = Colors.BGSecondary
+        MobileBtnStroke.Color = Colors.LED_Off
+        MobileAimBtn.Text = "OFF"
+        MobileAimBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        MobileAimBtn.BackgroundTransparency = 0.25
+    end
+end
+
+local mobileBtnDragging, mobileBtnDragStart, mobileBtnStartPos = false, nil, nil
+MobileAimBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        mobileBtnDragging = true; mobileBtnDragStart = input.Position; mobileBtnStartPos = MobileAimBtn.Position
+    end
+end)
+MobileAimBtn.InputChanged:Connect(function(input)
+    if mobileBtnDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputState == Enum.UserInputState.Change then
+            local delta = input.Position - mobileBtnDragStart
+            MobileAimBtn.Position = UDim2.new(mobileBtnStartPos.X.Scale, mobileBtnStartPos.X.Offset + delta.X, mobileBtnStartPos.Y.Scale, mobileBtnStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+
+MobileAimBtn.MouseButton1Click:Connect(function()
+    if not Settings.AimbotEnabled then
+        Settings.AimbotEnabled = true
+    end
+
+    Settings.AimbotActive = not Settings.AimbotActive
+
+    if Settings.AimbotActive then
+        currentTarget = GetClosestPlayer()
+        Notify("PRIMOS DEV", "Aimbot Activado (ON)", 1)
+    else
+        currentTarget = nil
+        Notify("PRIMOS DEV", "Aimbot Desactivado (OFF)", 1)
+    end
+    
+    UpdateMobileBtnVisuals()
+    SaveConfig()
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        pcall(function()
+            UpdateMobileBtnVisuals()
+        end)
+    end
+end)
+
+UpdateMobileBtnVisuals()
+
+local function CreateSection(frame, icon, text)
+    local s = Instance.new("TextLabel")
+    s.Size = UDim2.new(1, 0, 0, 26); s.BackgroundTransparency = 1
+    s.Text = icon .. "  " .. text; s.TextColor3 = Colors.Accent
+    s.TextSize = 13; s.Font = Enum.Font.GothamBold; s.TextXAlignment = Enum.TextXAlignment.Left; s.Parent = frame
+    local line = Instance.new("Frame")
+    line.Size = UDim2.new(1, 0, 0, 1); line.BackgroundColor3 = Colors.Border; line.BorderSizePixel = 0; line.Parent = frame
+end
+
+local function CreateToggle(frame, name, default, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 38); f.BackgroundColor3 = Colors.BGSecondary; f.BorderSizePixel = 0; f.Parent = frame
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    local fs = Instance.new("UIStroke"); fs.Color = Colors.Border; fs.Thickness = 0.8; fs.Parent = f
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -75, 1, 0); label.Position = UDim2.new(0, 14, 0, 0)
+    label.BackgroundTransparency = 1; label.Text = name; label.TextColor3 = Colors.Text
+    label.TextSize = 13; label.Font = Enum.Font.GothamMedium; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = f
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(0, 48, 0, 24); btn.Position = UDim2.new(1, -58, 0.5, -12)
+    btn.BackgroundColor3 = default and Colors.Active or Colors.BGLight; btn.BorderSizePixel = 0; btn.Text = ""; btn.AutoButtonColor = false; btn.Parent = f
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(1, 0)
+    local circle = Instance.new("Frame")
+    circle.Size = UDim2.new(0, 18, 0, 18)
+    circle.Position = default and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+    circle.BackgroundColor3 = Color3.fromRGB(255, 255, 255); circle.BorderSizePixel = 0; circle.Parent = btn
+    Instance.new("UICorner", circle).CornerRadius = UDim.new(1, 0)
+    local enabled = default
+    btn.MouseButton1Click:Connect(function()
+        enabled = not enabled
+        btn.BackgroundColor3 = enabled and Colors.Active or Colors.BGLight
+        circle.Position = enabled and UDim2.new(1, -21, 0.5, -9) or UDim2.new(0, 3, 0.5, -9)
+        if callback then callback(enabled) end
+        SaveConfig()
+    end)
+end
+
+local function CreateSelector(frame, name, options, defaultIdx, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 46); f.BackgroundColor3 = Colors.BGSecondary; f.BorderSizePixel = 0; f.Parent = frame
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    local fs = Instance.new("UIStroke"); fs.Color = Colors.Border; fs.Thickness = 0.8; fs.Parent = f
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, 0, 0, 18); label.Position = UDim2.new(0, 14, 0, 4)
+    label.BackgroundTransparency = 1; label.Text = name; label.TextColor3 = Colors.TextDim
+    label.TextSize = 11; label.Font = Enum.Font.Gotham; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = f
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, -24, 0, 22); btn.Position = UDim2.new(0, 12, 0, 22)
+    btn.BackgroundColor3 = Colors.BGLight; btn.BorderSizePixel = 0; btn.Text = options[defaultIdx]
+    btn.TextColor3 = Colors.Text; btn.TextSize = 12; btn.Font = Enum.Font.GothamMedium; btn.AutoButtonColor = false; btn.Parent = f
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    local idx = defaultIdx
+    btn.MouseButton1Click:Connect(function()
+        idx = (idx % #options) + 1; btn.Text = options[idx]
+        if callback then callback(options[idx]) end
+        SaveConfig()
+    end)
+end
+
+local function CreateSlider(frame, name, min, max, defaultVal, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 52); f.BackgroundColor3 = Colors.BGSecondary; f.BorderSizePixel = 0; f.Parent = frame
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    local fs = Instance.new("UIStroke"); fs.Color = Colors.Border; fs.Thickness = 0.8; fs.Parent = f
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -60, 0, 18); label.Position = UDim2.new(0, 14, 0, 4)
+    label.BackgroundTransparency = 1; label.Text = name; label.TextColor3 = Colors.Text
+    label.TextSize = 12; label.Font = Enum.Font.GothamMedium; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = f
+    
+    local valLabel = Instance.new("TextLabel")
+    valLabel.Size = UDim2.new(0, 50, 0, 18); valLabel.Position = UDim2.new(1, -60, 0, 4)
+    valLabel.BackgroundTransparency = 1; valLabel.Text = tostring(defaultVal); valLabel.TextColor3 = Colors.Accent
+    valLabel.TextSize = 12; valLabel.Font = Enum.Font.GothamBold; valLabel.TextXAlignment = Enum.TextXAlignment.Right; valLabel.Parent = f
+    
+    local sliderBg = Instance.new("Frame")
+    sliderBg.Size = UDim2.new(1, -28, 0, 8); sliderBg.Position = UDim2.new(0, 14, 0, 32)
+    sliderBg.BackgroundColor3 = Colors.BGLight; sliderBg.BorderSizePixel = 0; sliderBg.Parent = f
+    Instance.new("UICorner", sliderBg).CornerRadius = UDim.new(1, 0)
+    
+    local sliderFill = Instance.new("Frame")
+    sliderFill.Size = UDim2.new(math.clamp((defaultVal - min) / (max - min), 0, 1), 0, 1, 0)
+    sliderFill.BackgroundColor3 = Colors.Active; sliderFill.BorderSizePixel = 0; sliderFill.Parent = sliderBg
+    Instance.new("UICorner", sliderFill).CornerRadius = UDim.new(1, 0)
+    
+    local dragging = false
+    local function updateInput(input)
+        local pos = math.clamp((input.Position.X - sliderBg.AbsolutePosition.X) / sliderBg.AbsoluteSize.X, 0, 1)
+        local val = math.floor(min + (max - min) * pos)
+        sliderFill.Size = UDim2.new(pos, 0, 1, 0)
+        valLabel.Text = tostring(val)
+        if callback then callback(val) end
+    end
+    
+    sliderBg.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            updateInput(input)
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            updateInput(input)
+        end
+    end)
+    
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            if dragging then
+                dragging = false
+                SaveConfig()
+            end
+        end
+    end)
+end
+
+local function CreateKeybind(frame, name, defaultKey, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 46); f.BackgroundColor3 = Colors.BGSecondary; f.BorderSizePixel = 0; f.Parent = frame
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    local fs = Instance.new("UIStroke"); fs.Color = Colors.Border; fs.Thickness = 0.8; fs.Parent = f
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -110, 1, 0); label.Position = UDim2.new(0, 14, 0, 0)
+    label.BackgroundTransparency = 1; label.Text = name; label.TextColor3 = Colors.Text
+    label.TextSize = 13; label.Font = Enum.Font.GothamMedium; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = f
+    local bindBtn = Instance.new("TextButton")
+    bindBtn.Size = UDim2.new(0, 75, 0, 26); bindBtn.Position = UDim2.new(1, -95, 0.5, -13)
+    bindBtn.BackgroundColor3 = Colors.BGLight; bindBtn.BorderSizePixel = 0
+    bindBtn.Text = "[" .. defaultKey.Name .. "]"; bindBtn.TextColor3 = Colors.Accent
+    bindBtn.TextSize = 12; bindBtn.Font = Enum.Font.GothamBold; bindBtn.AutoButtonColor = false; bindBtn.Parent = f
+    Instance.new("UICorner", bindBtn).CornerRadius = UDim.new(0, 6)
+    local waitingForInput = false
+    bindBtn.MouseButton1Click:Connect(function() waitingForInput = true; bindBtn.Text = "[...]"; bindBtn.TextColor3 = Color3.new(1, 1, 1) end)
+    UserInputService.InputBegan:Connect(function(input, gpe)
+        if waitingForInput and not gpe and input.UserInputType == Enum.UserInputType.Keyboard then
+            Settings.AimKey = input.KeyCode; bindBtn.Text = "[" .. input.KeyCode.Name .. "]"
+            bindBtn.TextColor3 = Colors.Accent; waitingForInput = false
+            if callback then callback(input.KeyCode) end
+            SaveConfig()
+        end
+    end)
+end
+
+local function CreateButton(frame, name, callback)
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 38); f.BackgroundColor3 = Colors.BGSecondary; f.BorderSizePixel = 0; f.Parent = frame
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 10)
+    local fs = Instance.new("UIStroke"); fs.Color = Colors.Border; fs.Thickness = 0.8; fs.Parent = f
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0); btn.BackgroundTransparency = 1
+    btn.Text = name; btn.TextColor3 = Colors.Accent
+    btn.TextSize = 13; btn.Font = Enum.Font.GothamBold; btn.Parent = f
+    btn.MouseButton1Click:Connect(function()
+        local origText = btn.Text
+        btn.Text = "Procesando..."
+        task.spawn(function()
+            callback()
+            task.wait(1.5)
+            btn.Text = origText
+        end)
+    end)
+end
+
+local RarityColors = {
+    Common = Color3.fromRGB(200, 200, 200), Uncommon = Color3.fromRGB(100, 220, 100),
+    Rare = Color3.fromRGB(80, 170, 255), Epic = Color3.fromRGB(180, 100, 255),
+    Legendary = Color3.fromRGB(255, 200, 50), Mythic = Color3.fromRGB(255, 80, 150), Omega = Color3.fromRGB(255, 20, 51)
+}
+local Items = ReplicatedStorage:FindFirstChild("Items")
+local WeaponRegistry = {}
+local function registerItems(folder)
+    if not folder then return end
+    for _, tool in ipairs(folder:GetChildren()) do
+        if tool:IsA("Tool") then
+            local handle = tool:FindFirstChild("Handle")
+            local displayName = tool:GetAttribute("DisplayName") or tool.Name
+            local itemId = tool:GetAttribute("ItemId") or tool:GetAttribute("Id") or tool.Name
+            local rarity = tool:GetAttribute("RarityName") or "Common"
+            local imageId = tool:GetAttribute("ImageId") or "rbxassetid://7072725737"
+            local key
+            if handle then
+                local mesh = handle:FindFirstChildOfClass("SpecialMesh")
+                if mesh and mesh.MeshId ~= "" then key = mesh.MeshId..(mesh.TextureId or "").."_RARITY_"..rarity
+                elseif handle:IsA("MeshPart") and handle.MeshId ~= "" then key = handle.MeshId..(handle.TextureID or "").."_RARITY_"..rarity end
+            end
+            if not key and itemId and itemId ~= "" and itemId ~= tool.Name then key = "ITEMID_"..itemId.."_RARITY_"..rarity end
+            if not key then key = "NAME_"..displayName.."_"..tool.Name.."_RARITY_"..rarity end
+            WeaponRegistry[key] = {Name = displayName, Rarity = rarity, ImageId = imageId, ToolName = tool.Name}
+        end
+    end
+end
+if Items then
+    for _, folderName in ipairs({"gun", "melee", "throwable", "consumable", "farming", "misc", "rod", "fish"}) do
+        local folder = Items:FindFirstChild(folderName)
+        if folder then registerItems(folder) end
+    end
+    Items.ChildAdded:Connect(function(child) if child:IsA("Folder") then registerItems(child) end end)
+end
+
+local function getItemKey(tool)
+    local handle = tool:FindFirstChild("Handle")
+    local displayName = tool:GetAttribute("DisplayName") or tool.Name
+    local itemId = tool:GetAttribute("ItemId") or tool:GetAttribute("Id") or tool.Name
+    local rarity = tool:GetAttribute("RarityName") or "Common"
+    if handle then
+        local mesh = handle:FindFirstChildOfClass("SpecialMesh")
+        if mesh and mesh.MeshId ~= "" then return mesh.MeshId..(mesh.TextureId or "").."_RARITY_"..rarity end
+        if handle:IsA("MeshPart") and handle.MeshId ~= "" then return handle.MeshId..(handle.TextureID or "").."_RARITY_"..rarity end
+    end
+    if itemId and itemId ~= "" and itemId ~= tool.Name then return "ITEMID_"..itemId.."_RARITY_"..rarity end
+    return "NAME_"..displayName.."_"..tool.Name.."_RARITY_"..rarity
+end
+local function getWeaponInfo(tool) if not tool or not tool:IsA("Tool") then return nil end; return WeaponRegistry[getItemKey(tool)] end
+
+local PlayerBillboards = {}
+local function createBillboardForPlayer(player)
+    if not InventoryViewerEnabled or player == LocalPlayer then return end
+    local char = player.Character; if not char then return end
+    local root = char:FindFirstChild("HumanoidRootPart"); if not root then return end
+    if PlayerBillboards[player] then PlayerBillboards[player]:Destroy(); PlayerBillboards[player] = nil end
+
+    local gui = Instance.new("BillboardGui")
+    gui.Adornee = root; gui.Size = UDim2.new(0, 90, 0, 20); gui.StudsOffset = Vector3.new(0, -5, 0)
+    gui.AlwaysOnTop = true; gui.Parent = char
+    local layout = Instance.new("UIListLayout")
+    layout.FillDirection = Enum.FillDirection.Horizontal; layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Padding = UDim.new(0, 5); layout.HorizontalAlignment = Enum.HorizontalAlignment.Center; layout.Parent = gui
+
+    local tools = {}
+    for _, bagName in ipairs({"Backpack", "StarterGear", "StarterPack"}) do
+        local bag = player:FindFirstChild(bagName)
+        if bag then for _, t in ipairs(bag:GetChildren()) do if t:IsA("Tool") and t.Name ~= "Fists" then table.insert(tools, t) end end end
+    end
+    for _, t in ipairs(char:GetChildren()) do if t:IsA("Tool") and t.Name ~= "Fists" then table.insert(tools, t) end end
+
+    for _, tool in ipairs(tools) do
+        local info = getWeaponInfo(tool)
+        if info then
+            local img = Instance.new("ImageLabel")
+            img.Size = UDim2.new(0, 20, 0, 20); img.BackgroundTransparency = 0.1
+            img.Image = info.ImageId or "rbxassetid://7072725737"; img.BackgroundColor3 = Color3.fromRGB(240, 248, 255); img.Parent = gui
+            Instance.new("UICorner", img).CornerRadius = UDim.new(0, 10)
+            local stroke = Instance.new("UIStroke")
+            stroke.Color = RarityColors[info.Rarity] or Color3.new(1, 1, 1); stroke.Thickness = 2; stroke.Parent = img
+        end
+    end
+    PlayerBillboards[player] = gui
+end
+
+Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() task.wait(0.5); createBillboardForPlayer(p) end) end)
+Players.PlayerRemoving:Connect(function(p) if PlayerBillboards[p] then PlayerBillboards[p]:Destroy(); PlayerBillboards[p] = nil end end)
+
+local function getDisplayName(player)
+    if player == LocalPlayer then
+        return FAKE_NAME
+    elseif ExcludedPlayers[player.Name] and PlayerFakeNames[player.Name] then
+        return PlayerFakeNames[player.Name]
+    else
+        return player.Name
+    end
+end
+
+local function assignFakeName(playerName)
+    if not PlayerFakeNames[playerName] then
+        local usedNames = {}
+        for _, name in pairs(PlayerFakeNames) do usedNames[name] = true end
+        for _, fakeName in ipairs(FriendFakeNames) do
+            if not usedNames[fakeName] then
+                PlayerFakeNames[playerName] = fakeName
+                return fakeName
+            end
+        end
+        PlayerFakeNames[playerName] = "Friend" .. math.random(1, 99)
+    end
+    return PlayerFakeNames[playerName]
+end
+
+local function ocultarNombreEnTexto(textoOriginal)
+    if not HideNameEnabled or not textoOriginal then return textoOriginal or "" end
+    local realName = LocalPlayer.Name
+    local displayName = LocalPlayer.DisplayName
+    local modificado = textoOriginal:gsub(realName, FAKE_NAME)
+    modificado = modificado:gsub(displayName, FAKE_NAME)
+    for playerName, fakeName in pairs(PlayerFakeNames) do
+        modificado = modificado:gsub(playerName, fakeName)
+    end
+    return modificado
+end
+
+local function aplicarFiltroGlobal(objeto)
+    if objeto:IsA("TextLabel") or objeto:IsA("TextBox") or objeto:IsA("TextButton") then
+        objeto.Text = ocultarNombreEnTexto(objeto.Text)
+        objeto:GetPropertyChangedSignal("Text"):Connect(function()
+            if HideNameEnabled then
+                local nuevo = ocultarNombreEnTexto(objeto.Text)
+                if objeto.Text ~= nuevo then objeto.Text = nuevo end
+            end
+        end)
+    end
+end
+for _, guiObj in ipairs(game:GetDescendants()) do pcall(function() aplicarFiltroGlobal(guiObj) end) end
+game.DescendantAdded:Connect(function(obj) pcall(function() aplicarFiltroGlobal(obj) end) end)
+
+local function hideMyName()
+    if not HideNameEnabled then return end
+    local character = LocalPlayer.Character; if not character then return end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    if humanoid then humanoid.DisplayDistanceType = Enum.HumanoidDisplayDistanceType.None end
+    for _,v in pairs(character:GetDescendants()) do
+        if v:IsA("BillboardGui") then
+            v.Enabled = false
+            for _, label in ipairs(v:GetDescendants()) do
+                if label:IsA("TextLabel") then label.Text = ocultarNombreEnTexto(label.Text) end
+            end
+        elseif v:IsA("Model") and v.Name:find(LocalPlayer.Name) then
+            v.Name = FAKE_NAME
+        end
+    end
+end
+RunService.Heartbeat:Connect(hideMyName)
+task.wait(1); if HideNameEnabled then hideMyName() end
+
+CreateSection(VisualFrame, "👁️", "VISUAL / ESP")
+CreateToggle(VisualFrame, "Player ESP", PlayerESP, function(v) PlayerESP = v end)
+CreateToggle(VisualFrame, "Mostrar Nombre", NameESP, function(v) NameESP = v end)
+CreateToggle(VisualFrame, "Mostrar Distancia", DistanceESP, function(v) DistanceESP = v end)
+CreateToggle(VisualFrame, "Mostrar Vida", HealthESP, function(v) HealthESP = v end)
+CreateToggle(VisualFrame, "Mostrar Armas", WeaponESP, function(v) WeaponESP = v end)
+CreateToggle(VisualFrame, "Mostrar Tracer", Settings.ShowTracer, function(v) Settings.ShowTracer = v; if not v then TracerLine.Visible = false end end)
+CreateToggle(VisualFrame, "Inventory Viewer", InventoryViewerEnabled, function(v)
+    InventoryViewerEnabled = v
+    if not v then for _, p in ipairs(Players:GetPlayers()) do if PlayerBillboards[p] then PlayerBillboards[p]:Destroy(); PlayerBillboards[p] = nil end end
+    else for _, p in ipairs(Players:GetPlayers()) do if p ~= LocalPlayer then createBillboardForPlayer(p) end end end
+end)
+CreateToggle(VisualFrame, "Hide My Name", HideNameEnabled, function(v) HideNameEnabled = v; if v then hideMyName() end end)
+
+CreateSection(VisualFrame, "👥", "FRIEND LIST")
+local FriendToggleBtn = Instance.new("TextButton")
+FriendToggleBtn.Size = UDim2.new(1, 0, 0, 38); FriendToggleBtn.BackgroundColor3 = Colors.BGSecondary
+FriendToggleBtn.TextColor3 = Colors.FriendColor; FriendToggleBtn.Text = "  Mostrar/Ocultar Amigos"
+FriendToggleBtn.Font = Enum.Font.GothamMedium; FriendToggleBtn.TextSize = 13; FriendToggleBtn.Parent = VisualFrame
+Instance.new("UICorner", FriendToggleBtn).CornerRadius = UDim.new(0, 10)
+local ftStroke = Instance.new("UIStroke"); ftStroke.Color = Colors.FriendColor; ftStroke.Thickness = 0.8; ftStroke.Parent = FriendToggleBtn
+
+local FriendFrame = Instance.new("ScrollingFrame")
+FriendFrame.ClipsDescendants = true; FriendFrame.ScrollBarThickness = 3; FriendFrame.ScrollBarImageColor3 = Colors.FriendColor
+FriendFrame.Size = UDim2.new(1, 0, 0, 160); FriendFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+FriendFrame.BackgroundColor3 = Colors.BG; FriendFrame.BorderSizePixel = 0; FriendFrame.Parent = VisualFrame; FriendFrame.Visible = false
+Instance.new("UICorner", FriendFrame).CornerRadius = UDim.new(0, 10)
+local layout = Instance.new("UIListLayout"); layout.Padding = UDim.new(0, 4); layout.Parent = FriendFrame
+FriendToggleBtn.MouseButton1Click:Connect(function() FriendFrame.Visible = not FriendFrame.Visible end)
+
+local function CheckAndAddFriend(plr)
+    if plr ~= LocalPlayer and AutoDetectFriends and LocalPlayer:IsFriendsWith(plr.UserId) then 
+        ExcludedPlayers[plr.Name] = true
+        assignFakeName(plr.Name)
+    end
+end
+for _, plr in ipairs(Players:GetPlayers()) do CheckAndAddFriend(plr) end
+Players.PlayerAdded:Connect(function(plr) task.wait(1); CheckAndAddFriend(plr); RefreshFriends() end)
+Players.PlayerRemoving:Connect(function(plr) 
+    ExcludedPlayers[plr.Name] = nil
+    PlayerFakeNames[plr.Name] = nil
+    RefreshFriends() 
+end)
+
+local function RefreshFriends()
+    for _, v in pairs(FriendFrame:GetChildren()) do if v:IsA("TextButton") then v:Destroy() end end
+    local sortedPlayers = Players:GetPlayers()
+    table.sort(sortedPlayers, function(a, b) return a.Name:lower() < b.Name:lower() end)
+    for _, plr in pairs(sortedPlayers) do
+        if plr ~= LocalPlayer then
+            local btn = Instance.new("TextButton")
+            btn.Size = UDim2.new(1, -12, 0, 28); btn.Position = UDim2.new(0, 6, 0, 0)
+            btn.BackgroundColor3 = ExcludedPlayers[plr.Name] and Color3.fromRGB(20, 50, 30) or Colors.BGSecondary
+            btn.BorderSizePixel = 0
+            local displayName = ExcludedPlayers[plr.Name] and (PlayerFakeNames[plr.Name] or plr.Name) or plr.Name
+            btn.TextColor3 = ExcludedPlayers[plr.Name] and Colors.FriendColor or Colors.Text
+            btn.Text = (ExcludedPlayers[plr.Name] and "✓ " or "") .. displayName
+            btn.Font = Enum.Font.GothamMedium; btn.TextSize = 12; btn.Parent = FriendFrame
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+            btn.MouseButton1Click:Connect(function()
+                ExcludedPlayers[plr.Name] = not ExcludedPlayers[plr.Name]
+                if ExcludedPlayers[plr.Name] then
+                    assignFakeName(plr.Name)
+                else
+                    PlayerFakeNames[plr.Name] = nil
+                end
+                RefreshFriends()
+            end)
+        end
+    end
+    task.wait(); FriendFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+end
+RefreshFriends()
+CreateToggle(VisualFrame, "Auto-Detectar Amigos", AutoDetectFriends, function(v)
+    AutoDetectFriends = v; if v then for _, plr in ipairs(Players:GetPlayers()) do CheckAndAddFriend(plr) end; RefreshFriends() end
+end)
+
+CreateSection(AimFrame, "🎯", "AIMBOT")
+CreateToggle(AimFrame, "Activar Aimbot (Base)", Settings.AimbotEnabled, function(v)
+    Settings.AimbotEnabled = v
+    if not v then 
+        Settings.AimbotActive = false 
+        currentTarget = nil 
+    end
+    UpdateMobileBtnVisuals()
+end)
+CreateKeybind(AimFrame, "Tecla Aimbot (PC)", Settings.AimKey, function(key) Settings.AimKey = key end)
+
+local defaultHitboxIdx = 1
+if Settings.AimPart == "Head" then defaultHitboxIdx = 2 elseif Settings.AimPart == "Torso" then defaultHitboxIdx = 3 end
+CreateSelector(AimFrame, "Hitbox A Pie (Cuello/Pecho/Cabeza)", {"Dinamica (Cuello/Pecho)", "Solo Cabeza", "Solo Torso"}, defaultHitboxIdx, function(v)
+    if v == "Dinamica (Cuello/Pecho)" then
+        Settings.AimPart = "DynamicHitbox"
+    elseif v == "Solo Cabeza" then
+        Settings.AimPart = "Head"
+    elseif v == "Solo Torso" then
+        Settings.AimPart = "Torso"
+    end
+end)
+
+CreateSection(AimFrame, "🚗", "MIRA EN VEHÍCULOS")
+local defaultVehIdx = 1
+if Settings.VehicleAimPart == "Neck" then defaultVehIdx = 2 elseif Settings.VehicleAimPart == "Torso" then defaultVehIdx = 3 end
+CreateSelector(AimFrame, "Punto de mira en carro", {"Cabeza", "Cuello", "Torso"}, defaultVehIdx, function(v)
+    local map = {["Cabeza"]="Head", ["Cuello"]="Neck", ["Torso"]="Torso"}
+    Settings.VehicleAimPart = map[v]
+end)
+
+CreateSection(AimFrame, "⭕", "AJUSTES DE FOV")
+CreateSlider(AimFrame, "Radio FOV", 50, 500, Settings.FOV, function(v)
+    Settings.FOV = v
+    StandardFOV.Radius = v
+end)
+
+local distOptions = {"150", "200", "300", "400"}
+local defaultDistIdx = 3
+for i, opt in ipairs(distOptions) do if tonumber(opt) == Settings.MaxDistance then defaultDistIdx = i break end end
+CreateSelector(AimFrame, "Distancia máxima", distOptions, defaultDistIdx, function(v) Settings.MaxDistance = tonumber(v) end)
+CreateToggle(AimFrame, "Mostrar FOV", Settings.ShowFOV, function(v) 
+    Settings.ShowFOV = v
+    StandardFOV.Visible = v 
+end)
+CreateToggle(AimFrame, "Wall Check", Settings.WallCheck, function(v) Settings.WallCheck = v end)
+
+CreateSection(AimFrame, "⚔️", "COMBATE")
+CreateToggle(AimFrame, "No Recoil", Settings.NoRecoil, function(v) Settings.NoRecoil = v end)
+CreateToggle(AimFrame, "No Spread", Settings.NoSpread, function(v) Settings.NoSpread = v end)
+
+CreateSection(BloodFrame, "💉", "SALUD Y COMBATE")
+CreateToggle(BloodFrame, "Auto Blood Bag (<70 HP)", autoBloodActive, function(v) autoBloodActive = v end)
+CreateToggle(BloodFrame, "Auto Minigame", autoMinigameEnabled, function(v) autoMinigameEnabled = v end)
+CreateToggle(BloodFrame, "Auto Skip Crate / Ammo", skipCrateEnabled, function(v) skipCrateEnabled = v end)
+
+CreateSection(BloodFrame, "⚡", "RENDIMIENTO Y UTILIDAD")
+CreateToggle(BloodFrame, "FPS Boost (Gráficos de Cartón)", fpsBoostEnabled, function(v)
+    fpsBoostEnabled = v
+    if v then
+        pcall(function()
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Level01
+            Lighting.GlobalShadows = false
+            Lighting.FogEnd = 999999
+            Lighting.Brightness = 1
+            Lighting.OutdoorAmbient = Color3.fromRGB(150, 150, 150)
+            
+            for _, eff in ipairs(Lighting:GetChildren()) do
+                if eff:IsA("PostEffect") or eff:IsA("Atmosphere") or eff:IsA("Clouds") or eff:IsA("SunRaysEffect") or eff:IsA("BloomEffect") or eff:IsA("BlurEffect") or eff:IsA("ColorCorrectionEffect") then
+                    eff.Enabled = false
+                end
+            end
+            
+            for _, obj in ipairs(Workspace:GetDescendants()) do
+                if obj:IsA("BasePart") then
+                    obj.Material = Enum.Material.SmoothPlastic
+                    obj.Reflectance = 0
+                    obj.CastShadow = false
+                elseif obj:IsA("Texture") or obj:IsA("Decal") then
+                    obj.Transparency = 1
+                elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+                    obj.Enabled = false
+                end
+            end
+            
+            Workspace.DescendantAdded:Connect(function(obj)
+                if fpsBoostEnabled then
+                    if obj:IsA("BasePart") then
+                        obj.Material = Enum.Material.SmoothPlastic
+                        obj.Reflectance = 0
+                        obj.CastShadow = false
+                    elseif obj:IsA("Texture") or obj:IsA("Decal") then
+                        obj.Transparency = 1
+                    elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Fire") or obj:IsA("Smoke") or obj:IsA("Sparkles") then
+                        obj.Enabled = false
+                    end
+                end
+            end)
+        end)
+        Notify("PRIMOS DEV", "FPS Boost Activo: Gráficos de Cartón aplicados.", 2)
+    else
+        pcall(function()
+            settings().Rendering.QualityLevel = Enum.QualityLevel.Automatic
+            Lighting.GlobalShadows = true
+            Lighting.FogEnd = 100000
+            Lighting.Brightness = 2
+            for _, eff in ipairs(Lighting:GetChildren()) do
+                if eff:IsA("PostEffect") or eff:IsA("Atmosphere") or eff:IsA("Clouds") then
+                    eff.Enabled = true
+                end
+            end
+        end)
+        Notify("PRIMOS DEV", "FPS Boost Desactivado.", 2)
+    end
+end)
+CreateToggle(BloodFrame, "Drop Items ESP", droppedESPEnabled, function(v) droppedESPEnabled = v end)
+CreateToggle(BloodFrame, "Auto Pickup", autoPickupEnabled, function(v) autoPickupEnabled = v end)
+
+CreateSection(BloodFrame, "🌐", "SERVIDOR")
+CreateButton(BloodFrame, "Server Hop (Skins Robux / Pro)", function()
+    pcall(function()
+        local cursor = ""; local foundServers = {}
+        repeat
+            local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+            if cursor ~= "" then url = url .. "&cursor=" .. cursor end
+            local req = game:HttpGet(url); local data = HttpService:JSONDecode(req)
+            if data and data.data then
+                for _, s in ipairs(data.data) do
+                    if type(s) == "table" and s.id ~= game.JobId and s.playing and s.maxPlayers and s.playing >= 3 and s.playing < s.maxPlayers then
+                        table.insert(foundServers, s)
+                    end
+                end
+                cursor = data.nextPageCursor
+            else break end
+        until cursor == nil or #foundServers >= 40
+        
+        if #foundServers > 0 then
+            local randomServer = foundServers[math.random(1, #foundServers)]
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer.id, LocalPlayer)
+        else
+            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        end
+    end)
+end)
+
+CreateSection(ServiciosFrame, "🔧", "VERIFICACIÓN DE SERVICIOS")
+local serviciosList = {"Players", "RunService", "UserInputService", "HttpService", "TeleportService", "Lighting", "Workspace", "ReplicatedStorage", "CoreGui", "TweenService"}
+for i, serviceName in ipairs(serviciosList) do
+    local f = Instance.new("Frame")
+    f.Size = UDim2.new(1, 0, 0, 32); f.BackgroundColor3 = Colors.BGSecondary; f.BorderSizePixel = 0; f.Parent = ServiciosFrame
+    Instance.new("UICorner", f).CornerRadius = UDim.new(0, 8)
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(1, -50, 1, 0); label.Position = UDim2.new(0, 12, 0, 0)
+    label.BackgroundTransparency = 1; label.Text = serviceName; label.TextColor3 = Colors.Text
+    label.TextSize = 12; label.Font = Enum.Font.GothamMedium; label.TextXAlignment = Enum.TextXAlignment.Left; label.Parent = f
+    local status = Instance.new("TextLabel")
+    status.Size = UDim2.new(0, 40, 1, 0); status.BackgroundTransparency = 1
+    status.Text = "OK"; status.TextColor3 = Colors.FriendColor
+    status.TextSize = 12; status.Font = Enum.Font.GothamBold; status.Parent = f
+    pcall(function() game:GetService(serviceName) end)
+end
+
+CloseBtn.MouseButton1Click:Connect(function() MainPanel.Visible = false; menuOpen = false; SaveConfig() end)
+
+-- ===================== FUNCIONES DE AIMBOT =====================
+local function GetCenter() return Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2) end
+
+local function GetAimPosition(character)
+    if not character then return nil end
+    local humanoid = character:FindFirstChildOfClass("Humanoid")
+    local head = character:FindFirstChild("Head")
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    local upperTorso = character:FindFirstChild("UpperTorso")
+    local torso = character:FindFirstChild("Torso")
+    if not rootPart then return nil end
+
+    local seatPart = humanoid and humanoid.SeatPart
+    if seatPart then
+        if Settings.VehicleAimPart == "Head" then return head and head.Position or (seatPart.Position + Vector3.new(0, 2.5, 0))
+        elseif Settings.VehicleAimPart == "Neck" then return (head and upperTorso) and ((head.Position + upperTorso.Position) / 2) or (head and head.Position + Vector3.new(0, -0.5, 0)) or (seatPart.Position + Vector3.new(0, 2, 0))
+        elseif Settings.VehicleAimPart == "Torso" then return upperTorso and upperTorso.Position or torso and torso.Position or (seatPart.Position + Vector3.new(0, 1.5, 0)) end
+        return head and head.Position or (seatPart.Position + Vector3.new(0, 2.5, 0))
+    end
+
+    if Settings.AimPart == "DynamicHitbox" then
+        if head and upperTorso then
+            return (head.Position * 0.4) + (upperTorso.Position * 0.6) + Vector3.new(0, 0.2, 0)
+        elseif head and torso then
+            return (head.Position * 0.4) + (torso.Position * 0.6)
+        end
+        return head and head.Position or rootPart.Position
+    elseif Settings.AimPart == "Head" then 
+        return head and head.Position or rootPart.Position
+    elseif Settings.AimPart == "Neck" then 
+        return (head and upperTorso) and ((head.Position + upperTorso.Position) / 2) or rootPart.Position
+    elseif Settings.AimPart == "Torso" then 
+        return upperTorso and upperTorso.Position or torso and torso.Position or rootPart.Position
+    end
+    
+    return head and head.Position or rootPart.Position
+end
+
+local function GetClosestPlayer()
+    local Closest, ClosestDistance = nil, Settings.FOV
+    local center = GetCenter()
+    for _, plr in pairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and not ExcludedPlayers[plr.Name] and plr.Character then
+            local humanoid = plr.Character:FindFirstChildOfClass("Humanoid")
+            local aimPos = GetAimPosition(plr.Character)
+            if aimPos and humanoid and humanoid.Health > 0 and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
+                local pos, visible = Camera:WorldToViewportPoint(aimPos)
+                if visible then
+                    local dist = (Vector2.new(pos.X, pos.Y) - center).Magnitude
+                    local root = plr.Character:FindFirstChild("HumanoidRootPart")
+                    local distFromPlayer = (root and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")) and (LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude or 0
+                    
+                    if dist < ClosestDistance and distFromPlayer <= Settings.MaxDistance then
+                        if Settings.WallCheck then
+                            local rayParams = RaycastParams.new()
+                            rayParams.FilterType = Enum.RaycastFilterType.Exclude
+                            rayParams.FilterDescendantsInstances = {LocalPlayer.Character}
+                            local ray = workspace:Raycast(Camera.CFrame.Position, (aimPos - Camera.CFrame.Position).Unit * 500, rayParams)
+                            if not ray or ray.Instance:IsDescendantOf(plr.Character) then
+                                ClosestDistance = dist; Closest = plr
+                            end
+                        else
+                            ClosestDistance = dist; Closest = plr
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return Closest
+end
+
+local function onCharacterAdded(char)
+    task.wait(1)
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("Tool") then
+            pcall(function()
+                for _, desc in ipairs(child:GetDescendants()) do
+                    if desc:IsA("NumberValue") or desc:IsA("IntValue") then
+                        local name = desc.Name:lower()
+                        if Settings.NoRecoil and (name:find("recoil") or name:find("kick")) then desc.Value = 0 end
+                        if Settings.NoSpread and (name:find("spread") or name:find("accuracy")) then desc.Value = 0 end
+                    end
+                end
+            end)
+        end
+    end
+end
+if LocalPlayer.Character then onCharacterAdded(LocalPlayer.Character) end
+LocalPlayer.CharacterAdded:Connect(onCharacterAdded)
+
+-- ===================== ESP SYSTEM =====================
+local function createESP(player)
+    if player == LocalPlayer or ESP_Data[player] then return end
+    local highlight = Instance.new("Highlight")
+    highlight.FillTransparency = 1; highlight.OutlineTransparency = 0; highlight.OutlineColor = Colors.ESPColor
+    highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    pcall(function() highlight.Parent = CoreGui end)
+    local name = Drawing.new("Text"); name.Size = 13.75; name.Font = 0; name.Outline = true; name.Color = Color3.new(1, 1, 1)
+    local distance = Drawing.new("Text"); distance.Size = 12; distance.Outline = true; distance.Color = Color3.fromRGB(180, 180, 180)
+    local hp = Drawing.new("Text"); hp.Size = 12.75; hp.Outline = true
+    local weaponDrawings = {}
+    local last = 0
+    local connection
+    connection = RunService.RenderStepped:Connect(function()
+        if not ESP_Data[player] then connection:Disconnect(); return end
+        if tick() - last < UPDATE_DELAY then return end; last = tick()
+        local char = player.Character
+        if not char then highlight.Adornee = nil; name.Visible = false; distance.Visible = false; hp.Visible = false
+            for _,draw in pairs(weaponDrawings) do if draw then draw.Visible = false end end
+            return 
+        end
+        local head = char:FindFirstChild("Head"); local root = char:FindFirstChild("HumanoidRootPart"); local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not head or not root or not humanoid then highlight.Adornee = nil; name.Visible = false; distance.Visible = false; hp.Visible = false
+            for _,draw in pairs(weaponDrawings) do if draw then draw.Visible = false end end
+            return 
+        end
+
+        if PlayerESP and humanoid.Health > 0 then
+            highlight.Adornee = char
+            local isTarget = currentTarget and currentTarget == player
+            if ExcludedPlayers[player.Name] then 
+                highlight.OutlineColor = Colors.FriendColor
+                name.Color = Colors.FriendColor
+            elseif isTarget then 
+                highlight.FillColor = Color3.fromRGB(255, 80, 120)
+                highlight.FillTransparency = 0.35
+                highlight.OutlineColor = Color3.fromRGB(255, 80, 120)
+                name.Color = Color3.fromRGB(255, 80, 120)
+            else 
+                highlight.OutlineColor = Colors.ESPColor 
+            end
+        else 
+            highlight.Adornee = nil; name.Visible = false; distance.Visible = false; hp.Visible = false
+            for _,draw in pairs(weaponDrawings) do if draw then draw.Visible = false end end
+            return 
+        end
+
+        local headPos, headVis = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+        local rootPos, rootVis = Camera:WorldToViewportPoint(root.Position - Vector3.new(0, 2.3, 0))
+        
+        if not headVis or not rootVis or headPos.Z < 0 or rootPos.Z < 0 then 
+            name.Visible = false; distance.Visible = false; hp.Visible = false
+            for _,draw in pairs(weaponDrawings) do if draw then draw.Visible = false end end
+            return 
+        end
+
+        local height = math.abs(headPos.Y - rootPos.Y); local width = height / 2; local x = rootPos.X - width / 2; local y = headPos.Y
+        local distanceFromPlayer = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and (LocalPlayer.Character.HumanoidRootPart.Position - root.Position).Magnitude or 0
+        local anchorX = x + width + 6; local anchorY = distanceFromPlayer > 25 and y - 24.5 or y - 12
+
+        if NameESP then 
+            name.Text = getDisplayName(player)
+            name.Position = Vector2.new(anchorX, anchorY)
+            name.Visible = true 
+        else 
+            name.Visible = false 
+        end
+        
+        if DistanceESP and LocalPlayer.Character then local myRoot = LocalPlayer.Character:FindFirstChild("HumanoidRootPart"); if myRoot then distance.Text = math.floor((myRoot.Position - root.Position).Magnitude) .. "m"; distance.Position = Vector2.new(anchorX, anchorY + 12); distance.Visible = true end else distance.Visible = false end
+        if HealthESP then local percent = humanoid.Health / humanoid.MaxHealth; hp.Text = math.floor(math.max(0, humanoid.Health)) .. "/" .. math.floor(humanoid.MaxHealth); hp.Color = Color3.fromRGB(255 * (1 - percent), 255 * percent, 0); hp.Position = Vector2.new(anchorX, anchorY + 24); hp.Visible = true else hp.Visible = false end
+        
+        if WeaponESP then
+            local items = {}
+            local function scan(container)
+                if not container then return end
+                for _, tool in ipairs(container:GetChildren()) do
+                    if tool:IsA("Tool") and tool.Name ~= "Fists" then
+                        local info = getWeaponInfo(tool)
+                        if info then table.insert(items, {Name = info.Name, Rarity = info.Rarity}) end
+                    end
+                end
+            end
+            scan(player:FindFirstChild("Backpack")); scan(player.Character)
+            
+            for _,draw in pairs(weaponDrawings) do if draw then draw.Visible = false end end
+            
+            for i,w in ipairs(items) do
+                if not weaponDrawings[i] then
+                    local txt = Drawing.new("Text"); txt.Size = 13.75; txt.Center = true; txt.Outline = true; txt.Font = 2; weaponDrawings[i] = txt
+                end
+                local draw = weaponDrawings[i]
+                if draw then
+                    draw.Text = "["..w.Rarity.."] "..w.Name
+                    draw.Color = RarityColors[w.Rarity] or Color3.new(1,1,1)
+                    draw.Position = Vector2.new(x + width/2, y + height + 6 + ((i-1)*12))
+                    draw.Visible = true
+                end
+            end
+            
+            for i = #items + 1, #weaponDrawings do
+                if weaponDrawings[i] then
+                    weaponDrawings[i].Visible = false
+                end
+            end
+        else
+            for _,draw in pairs(weaponDrawings) do if draw then draw.Visible = false end end
+        end
+    end)
+    ESP_Data[player] = {Highlight = highlight, Name = name, Distance = distance, HP = hp, Weapons = weaponDrawings, Connection = connection}
+    player.AncestryChanged:Connect(function()
+        if not player.Parent and ESP_Data[player] then
+            local data = ESP_Data[player]
+            if data.Connection then pcall(function() data.Connection:Disconnect() end) end
+            if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
+            if data.Name then pcall(function() data.Name:Remove() end) end
+            if data.Distance then pcall(function() data.Distance:Remove() end) end
+            if data.HP then pcall(function() data.HP:Remove() end) end
+            if data.Weapons then
+                for _,draw in pairs(data.Weapons) do
+                    if draw then pcall(function() draw:Remove() end) end
+                end
+            end
+            ESP_Data[player] = nil
+        end
+    end)
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    if player ~= LocalPlayer then
+        if player.Character then createESP(player) end
+        player.CharacterAdded:Connect(function(char) task.wait(0.5); createESP(player) end)
+    end
+end
+Players.PlayerAdded:Connect(function(player) player.CharacterAdded:Connect(function(char) task.wait(0.5); createESP(player) end) end)
+Players.PlayerRemoving:Connect(function(player)
+    local data = ESP_Data[player]
+    if data then
+        if data.Connection then pcall(function() data.Connection:Disconnect() end) end
+        if data.Highlight then pcall(function() data.Highlight:Destroy() end) end
+        if data.Name then pcall(function() data.Name:Remove() end) end
+        if data.Distance then pcall(function() data.Distance:Remove() end) end
+        if data.HP then pcall(function() data.HP:Remove() end) end
+        if data.Weapons then
+            for _,draw in pairs(data.Weapons) do
+                if draw then pcall(function() draw:Remove() end) end
+            end
+        end
+        ESP_Data[player] = nil
+    end
+    if player == currentTarget then currentTarget = nil end
+    if player == lockedTarget then lockedTarget = nil; lockLine.Visible = false end
+    ExcludedPlayers[player.Name] = nil
+    PlayerFakeNames[player.Name] = nil
+end)
+
+local originalCameraSubject = Camera.CameraSubject
+local originalCameraType = Camera.CameraType
+local isRespawning = false
+
+LocalPlayer.CharacterAdded:Connect(function()
+    isRespawning = true
+    task.spawn(function()
+        task.wait(1); isRespawning = false
+        originalCameraSubject = Camera.CameraSubject; originalCameraType = Camera.CameraType
+    end)
+end)
+
+RunService.RenderStepped:Connect(function()
+    if isRespawning then return end
+    local localHumanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    local inVehicle = localHumanoid and localHumanoid.SeatPart ~= nil
+    if inVehicle then
+        if Camera.CameraType ~= Enum.CameraType.Custom then Camera.CameraType = Enum.CameraType.Custom end
+        if Camera.CameraSubject ~= localHumanoid then Camera.CameraSubject = localHumanoid end
+    else
+        if Camera.CameraSubject ~= originalCameraSubject then Camera.CameraSubject = originalCameraSubject end
+        if Camera.CameraType ~= originalCameraType then Camera.CameraType = originalCameraType end
+    end
+end)
+
+RunService.RenderStepped:Connect(function(dt)
+    -- Actualización estricta y forzada del Círculo FOV en cada frame
+    if Settings.ShowFOV then 
+        StandardFOV.Visible = true
+        StandardFOV.Radius = Settings.FOV
+        StandardFOV.Position = GetCenter()
+    else 
+        StandardFOV.Visible = false 
+    end
+
+    if Settings.ShowTracer and currentTarget and currentTarget.Character then
+        local aimPos = GetAimPosition(currentTarget.Character)
+        if aimPos then
+            local screenPos, onScreen = Camera:WorldToViewportPoint(aimPos)
+            if onScreen then
+                local center = GetCenter()
+                TracerLine.From = Vector2.new(center.X, center.Y); TracerLine.To = Vector2.new(screenPos.X, screenPos.Y)
+                TracerLine.Color = Color3.fromRGB(6, 182, 212); TracerLine.Visible = true
+            else TracerLine.Visible = false end
+        else TracerLine.Visible = false end
+    else TracerLine.Visible = false end
+
+    if Settings.AimbotEnabled and Settings.AimbotActive then
+        pcall(function()
+            local bestTarget = GetClosestPlayer()
+            if bestTarget and bestTarget.Character and bestTarget.Character:FindFirstChildOfClass("Humanoid") and bestTarget.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                currentTarget = bestTarget
+            else
+                currentTarget = nil
+            end
+
+            if currentTarget and currentTarget.Character then
+                local aimPos = GetAimPosition(currentTarget.Character)
+                if aimPos then
+                    local camPos = Camera.CFrame.Position
+                    local targetCFrame = CFrame.lookAt(camPos, aimPos)
+                    local finalAlpha = 0.85 
+                    Camera.CFrame = Camera.CFrame:Lerp(targetCFrame, finalAlpha)
+                end
+            end
+        end)
+    else
+        currentTarget = nil
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Settings.ResetLockKey then
+        lockedTarget = nil; lockLine.Visible = false; return
+    end
+    if input.KeyCode == Settings.AimKey then
+        if Settings.AimbotEnabled then
+            Settings.AimbotActive = not Settings.AimbotActive
+            if Settings.AimbotActive then currentTarget = GetClosestPlayer() else currentTarget = nil end
+            UpdateMobileBtnVisuals()
+        end
+    end
+end)
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if autoBloodActive then
+            local char = LocalPlayer.Character
+            if char then
+                local humanoid = char:FindFirstChildOfClass("Humanoid")
+                if humanoid and humanoid.Health > 0 and humanoid.Health < 70 then
+                    local backpack = LocalPlayer:FindFirstChild("Backpack")
+                    local tool = backpack and backpack:FindFirstChild("Blood Bag") or char:FindFirstChild("Blood Bag")
+                    if tool then
+                        if tool.Parent == backpack then pcall(function() humanoid:EquipTool(tool) end) end
+                        local remoteEvent = tool:FindFirstChildWhichIsA("RemoteEvent") or tool:FindFirstChild("ServerControl") or tool:FindFirstChild("Use")
+                        if remoteEvent then pcall(function() remoteEvent:FireServer() end) end
+                        if tool:IsA("Tool") then pcall(function() tool:Activate() end) end
+                        pcall(function() VirtualUser:Button1Down(Vector2.new(0,0)); task.wait(0.01); VirtualUser:Button1Up(Vector2.new(0,0)) end)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+local CrateController, UtilModule
+pcall(function() CrateController = require(ReplicatedStorage.Modules.Game.CrateSystem.Crate) end)
+pcall(function() UtilModule = require(ReplicatedStorage.Modules.Core.Util) end)
+pcall(function()
+    if UtilModule and UtilModule.tween then
+        local old_tween = UtilModule.tween
+        UtilModule.tween = function(instance, tweenInfo, properties, ...)
+            if instance:IsA("NumberValue") and properties.Value == 1 and tweenInfo.Time > 0 then
+                tweenInfo = TweenInfo.new(0, tweenInfo.EasingStyle, tweenInfo.EasingDirection, tweenInfo.RepeatCount, tweenInfo.Reverses, tweenInfo.DelayTime)
+            end
+            return old_tween(instance, tweenInfo, properties, ...)
+        end
+    end
+end)
+task.spawn(function()
+    while true do
+        task.wait(0.1)
+        if skipCrateEnabled and CrateController then
+            pcall(function()
+                for _, crate in pairs(CrateController.class.objects) do
+                    crate.states.open.set(true)
+                    CrateController.skipping.set(true)
+                end
+            end)
+        end
+    end
+end)
+
+local SliderModule
+pcall(function() SliderModule = require(ReplicatedStorage.Modules.Game.Minigames.SliderMinigame) end)
+task.spawn(function()
+    while true do
+        task.wait(0.04)
+        if autoMinigameEnabled and SliderModule and SliderModule.enabled and SliderModule.enabled.get() then
+            local ok, current, target = pcall(function() return SliderModule.needle_pos.get(), SliderModule.target_pos.get() end)
+            if ok and typeof(current) == "number" and typeof(target) == "number" then
+                local diff = target - current
+                local newPos = current + diff * 0.12
+                pcall(function() SliderModule.needle_pos.set(newPos) end)
+                if math.abs(diff) < 0.025 then
+                    task.wait(0.06)
+                    pcall(function() VirtualInputManager:SendMouseButtonEvent(0, 0, 0, true, game, 0); task.wait(0.03); VirtualInputManager:SendMouseButtonEvent(0, 0, 0, false, game, 0) end)
+                    task.wait(0.35)
+                end
+            end
+        end
+    end
+end)
+
+local DropRarityColors = {Common = Color3.fromRGB(255, 255, 255), Uncommon = Color3.fromRGB(99, 255, 52), Rare = Color3.fromRGB(51, 170, 255), Epic = Color3.fromRGB(237, 44, 255), Legendary = Color3.fromRGB(255, 150, 0), Omega = Color3.fromRGB(255, 20, 51)}
+local _dropItemRarityCache = {}
+local function _buildDropRarityCache()
+    _dropItemRarityCache = {}
+    if not Items then return end
+    for _, folder in ipairs(Items:GetChildren()) do
+        if folder:IsA("Folder") then
+            for _, item in ipairs(folder:GetChildren()) do
+                _dropItemRarityCache[item.Name] = item:GetAttribute("RarityName") or "Common"
+            end
+        end
+    end
+end
+pcall(_buildDropRarityCache)
+
+local itemDrawings = {}
+local _espHbFrame = 0
+RunService.Heartbeat:Connect(function()
+    _espHbFrame = _espHbFrame + 1
+    if _espHbFrame % 6 ~= 0 then return end
+    if _espHbFrame % 300 == 0 then
+        for model, data in pairs(itemDrawings) do
+            if not model or not model.Parent then
+                pcall(function() data.circle:Remove(); data.innerCircle:Remove(); data.name:Remove(); data.amount:Remove() end)
+                if data.highlight then data.highlight:Destroy() end
+                itemDrawings[model] = nil
+            end
+        end
+    end
+
+    if not droppedESPEnabled or not DroppedItems then
+        for _, data in pairs(itemDrawings) do
+            if data.circle then data.circle.Visible = false end
+            if data.innerCircle then data.innerCircle.Visible = false end
+            if data.name then data.name.Visible = false end
+            if data.amount then data.amount.Visible = false end
+            if data.highlight then data.highlight.Enabled = false end
+        end
+        return
+    end
+
+    local myRoot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not myRoot then return end
+
+    for _, data in pairs(itemDrawings) do
+        if data.circle then data.circle.Visible = false end
+        if data.innerCircle then data.innerCircle.Visible = false end
+        if data.name then data.name.Visible = false end
+        if data.amount then data.amount.Visible = false end
+        if data.highlight then data.highlight.Enabled = false end
+    end
+
+    for _, model in ipairs(DroppedItems:GetChildren()) do
+        if model:IsA("Model") and model:FindFirstChild("PickUpZone") and not model:GetAttribute("Locked") then
+            local data = itemDrawings[model]
+            if not data then
+                data = {}
+                data.circle = Drawing.new("Circle"); data.circle.Thickness = 2; data.circle.Transparency = 0.7; data.circle.Filled = false
+                data.innerCircle = Drawing.new("Circle"); data.innerCircle.Thickness = 2; data.innerCircle.Transparency = 1; data.innerCircle.Filled = true
+                data.name = Drawing.new("Text"); data.name.Outline = true; data.name.OutlineColor = Color3.fromRGB(0, 0, 0); data.name.Center = true; data.name.Size = 16; data.name.Font = 4
+                data.amount = Drawing.new("Text"); data.amount.Outline = true; data.amount.OutlineColor = Color3.fromRGB(0, 0, 0); data.amount.Center = true; data.amount.Size = 13; data.amount.Color = Color3.fromRGB(200, 200, 200)
+                itemDrawings[model] = data
+            end
+
+            if not data.highlight or not data.highlight.Parent then
+                local h = Instance.new("Highlight"); h.Name = "ESP_Highlight"; h.FillTransparency = 0.5; h.OutlineTransparency = 0.1; h.Adornee = model; h.Parent = model
+                data.highlight = h
+            end
+
+            local pos, vis = Camera:WorldToViewportPoint(model.PickUpZone.Position)
+            if vis then
+                local rarity = _dropItemRarityCache[model.Name]
+                local color = (model.Name == "Money") and Color3.fromRGB(0, 255, 0) or (DropRarityColors[rarity] or Color3.fromRGB(255, 255, 255))
+                local radius = math.clamp(100 / math.max(pos.Z, 0.1), 3, 6)
+
+                data.highlight.FillColor = color; data.highlight.OutlineColor = color; data.highlight.Enabled = true
+                data.circle.Position = Vector2.new(pos.X, pos.Y); data.circle.Radius = radius + 5; data.circle.Color = color; data.circle.Visible = true
+                data.innerCircle.Position = Vector2.new(pos.X, pos.Y); data.innerCircle.Radius = radius; data.innerCircle.Color = color; data.innerCircle.Visible = true
+                data.name.Color = color; data.name.Position = Vector2.new(pos.X, pos.Y - radius - 20); data.name.Text = model.Name; data.name.Visible = true
+                local amt = model:GetAttribute("Amount") or 1
+                data.amount.Position = Vector2.new(pos.X, pos.Y + radius + 15); data.amount.Text = amt > 1 and ("[" .. tostring(amt) .. "]") or ""; data.amount.Visible = amt > 1
+            end
+        end
+    end
+end)
+
+local Counter
+pcall(function()
+    for _, v in ipairs(getgc(true)) do
+        if typeof(v) == "table" and rawget(v, "event") and rawget(v, "func") then Counter = v; break end
+    end
+end)
+local function netGet(...)
+    if not Counter or not Counter.func then return end
+    local args = {...}
+    for i, v in ipairs(args) do
+        if typeof(v) == "Instance" and v:IsA("Model") and #v:GetChildren() == 0 then
+            local dropped = Workspace:FindFirstChild("DroppedItems")
+            if dropped then
+                local model = dropped:FindFirstChildWhichIsA("Model")
+                if model then args[i] = model else return end
+            else return end
+        end
+    end
+    Counter.func = (Counter.func or 0) + 1
+    local get = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Get")
+    return get:InvokeServer(Counter.func, unpack(args))
+end
+
+task.spawn(function()
+    while true do
+        task.wait(0.2)
+        if autoPickupEnabled then
+            local char = LocalPlayer.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root then
+                for _, item in ipairs(DroppedItems:GetChildren()) do
+                    if item:IsA("Model") and item:FindFirstChild("PickUpZone") then
+                        if (item:GetPivot().Position - root.Position).Magnitude < 50 then
+                            pcall(netGet, "pickup_dropped_item", item)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+print("✅ PRIMOS DEV v13.9.4 cargado correctamente con FOV visible.")
+Notify("PRIMOS DEV", "v13.9.4: Círculo FOV estándar corregido y visible.", 3)
