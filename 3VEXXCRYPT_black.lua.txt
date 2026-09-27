@@ -1,8 +1,8 @@
 -- ═══════════════════════════════════════════════════════
---  PRIMOS DEV LEAK BY Z8KM - SCRIPT v13.9.4 (FOV ESTÁNDAR CORREGIDO & VISIBLE)
+--  7VEXXCRYTP  BY ERK.LOL - SCRIPT v2
 -- ═══════════════════════════════════════════════════════
 
-print("🔄 Iniciando PRIMOS DEV v13.9.4...")
+print("🔄 Iniciando v2...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
