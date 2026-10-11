@@ -1,5 +1,3 @@
--- THE Reych9 | Interfaz visual con El Chapa
--- UI únicamente: no incluye aimbot, ESP, manipulación de remotos ni trampas.
 -- Sube la imagen de El Chapa a Roblox y reemplaza CHAPA_IMAGE_ID con su asset ID.
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
