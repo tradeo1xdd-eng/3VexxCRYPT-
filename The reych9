@@ -1,0 +1,510 @@
+-- ═══════════════════════════════════════════════════════
+--  THE Reych9 - INTERFAZ PERSONALIZADA
+-- ═══════════════════════════════════════════════════════
+
+print("🔄 Iniciando THE Reych9...")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local StarterGui = game:GetService("StarterGui")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CoreGui = game:GetService("CoreGui")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local VirtualUser = game:GetService("VirtualUser")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Lighting = game:GetService("Lighting")
+local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
+
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local DroppedItems = Workspace:WaitForChild("DroppedItems")
+
+if not Drawing then
+    warn("❌ Executor no soporta API de dibujo")
+    return
+end
+
+local function Notify(title, text, duration)
+    duration = duration or 3
+    pcall(function()
+        StarterGui:SetCore("SendNotification", { Title = title, Text = text, Duration = duration })
+    end)
+end
+
+-- ===================== CONFIGURACIÓN & AUTOGUARDADO =====================
+local ConfigFileName = "TheReych9_Config.json"
+
+local Settings = {
+    AimbotEnabled = false,
+    AimbotActive = false,
+    AimKey = Enum.KeyCode.Q,
+    ResetLockKey = Enum.KeyCode.G,
+    AimPart = "DynamicHitbox",
+    VehicleAimPart = "Head",
+    FOV = 180,
+    MaxDistance = 300,
+    ShowFOV = true,
+    ShowTracer = false,
+    NoRecoil = true,
+    NoSpread = true,
+    WallCheck = false,
+    InfiniteStamina = true,
+}
+
+local PlayerESP = true
+local NameESP = true
+local DistanceESP = true
+local HealthESP = true
+local WeaponESP = true
+local UPDATE_DELAY = 0.033
+local ExcludedPlayers = {}
+local AutoDetectFriends = true
+
+local InventoryViewerEnabled = false
+local HideNameEnabled = true
+local autoBloodActive = false
+local skipCrateEnabled = false
+local autoMinigameEnabled = false
+local fpsBoostEnabled = false
+local droppedESPEnabled = false
+local autoPickupEnabled = false
+local FAKE_NAME = "THE Reych9"
+
+local function SaveConfig()
+    if not writefile then return end
+    pcall(function()
+        local data = {
+            Settings = {
+                AimbotEnabled = Settings.AimbotEnabled,
+                AimKey = Settings.AimKey.Name,
+                AimPart = Settings.AimPart,
+                VehicleAimPart = Settings.VehicleAimPart,
+                FOV = Settings.FOV,
+                MaxDistance = Settings.MaxDistance,
+                ShowFOV = Settings.ShowFOV,
+                ShowTracer = Settings.ShowTracer,
+                NoRecoil = Settings.NoRecoil,
+                NoSpread = Settings.NoSpread,
+                WallCheck = Settings.WallCheck,
+                InfiniteStamina = Settings.InfiniteStamina,
+            },
+            Visuals = {
+                PlayerESP = PlayerESP,
+                NameESP = NameESP,
+                DistanceESP = DistanceESP,
+                HealthESP = HealthESP,
+                WeaponESP = WeaponESP,
+                InventoryViewer = InventoryViewerEnabled,
+                HideName = HideNameEnabled,
+                AutoDetectFriends = AutoDetectFriends,
+            },
+            Combat = {
+                AutoBlood = autoBloodActive,
+                AutoMinigame = autoMinigameEnabled,
+                SkipCrate = skipCrateEnabled,
+            },
+            Extras = {
+                FPSBoost = fpsBoostEnabled,
+                DroppedESP = droppedESPEnabled,
+                AutoPickup = autoPickupEnabled,
+            }
+        }
+        writefile(ConfigFileName, HttpService:JSONEncode(data))
+    end)
+end
+
+local function LoadConfig()
+    if not isfile or not readfile then return end
+    pcall(function()
+        if isfile(ConfigFileName) then
+            local decoded = HttpService:JSONDecode(readfile(ConfigFileName))
+            if decoded and decoded.Settings then
+                local s = decoded.Settings
+                Settings.AimbotEnabled = s.AimbotEnabled or Settings.AimbotEnabled
+                if s.AimKey and Enum.KeyCode[s.AimKey] then Settings.AimKey = Enum.KeyCode[s.AimKey] end
+                Settings.AimPart = s.AimPart or Settings.AimPart
+                Settings.VehicleAimPart = s.VehicleAimPart or Settings.VehicleAimPart
+                Settings.FOV = s.FOV or Settings.FOV
+                Settings.MaxDistance = s.MaxDistance or Settings.MaxDistance
+                Settings.ShowFOV = s.ShowFOV ~= nil and s.ShowFOV or Settings.ShowFOV
+                Settings.ShowTracer = s.ShowTracer ~= nil and s.ShowTracer or Settings.ShowTracer
+                Settings.NoRecoil = s.NoRecoil ~= nil and s.NoRecoil or Settings.NoRecoil
+                Settings.NoSpread = s.NoSpread ~= nil and s.NoSpread or Settings.NoSpread
+                Settings.WallCheck = s.WallCheck ~= nil and s.WallCheck or Settings.WallCheck
+                Settings.InfiniteStamina = s.InfiniteStamina ~= nil and s.InfiniteStamina or Settings.InfiniteStamina
+            end
+            if decoded and decoded.Visuals then
+                local v = decoded.Visuals
+                PlayerESP = v.PlayerESP ~= nil and v.PlayerESP or PlayerESP
+                NameESP = v.NameESP ~= nil and v.NameESP or NameESP
+                DistanceESP = v.DistanceESP ~= nil and v.DistanceESP or DistanceESP
+                HealthESP = v.HealthESP ~= nil and v.HealthESP or HealthESP
+                WeaponESP = v.WeaponESP ~= nil and v.WeaponESP or WeaponESP
+                InventoryViewerEnabled = v.InventoryViewer ~= nil and v.InventoryViewer or InventoryViewerEnabled
+                HideNameEnabled = v.HideName ~= nil and v.HideName or HideNameEnabled
+                AutoDetectFriends = v.AutoDetectFriends ~= nil and v.AutoDetectFriends or AutoDetectFriends
+            end
+            if decoded and decoded.Combat then
+                local c = decoded.Combat
+                autoBloodActive = c.AutoBlood ~= nil and c.AutoBlood or autoBloodActive
+                autoMinigameEnabled = c.AutoMinigame ~= nil and c.AutoMinigame or autoMinigameEnabled
+                skipCrateEnabled = c.SkipCrate ~= nil and c.SkipCrate or skipCrateEnabled
+            end
+            if decoded and decoded.Extras then
+                local e = decoded.Extras
+                fpsBoostEnabled = e.FPSBoost ~= nil and e.FPSBoost or fpsBoostEnabled
+                droppedESPEnabled = e.DroppedESP ~= nil and e.DroppedESP or droppedESPEnabled
+                autoPickupEnabled = e.AutoPickup ~= nil and e.AutoPickup or autoPickupEnabled
+            end
+        end
+    end)
+end
+
+LoadConfig()
+
+local FriendFakeNames = {
+    "Bro", "Squad", "Ally", "Team1", "Partner", 
+    "Mate", "Friend", "Compa", "Homie", "Dude",
+    "Buddy", "Pal", "Crew", "Gang", "Fam"
+}
+local PlayerFakeNames = {}
+
+local Colors = {
+    BG = Color3.fromRGB(5, 5, 5),
+    BGSecondary = Color3.fromRGB(10, 10, 10),
+    BGLight = Color3.fromRGB(18, 18, 18),
+    Border = Color3.fromRGB(35, 35, 35),
+    Text = Color3.fromRGB(245, 245, 245),
+    TextDim = Color3.fromRGB(145, 145, 145),
+    TextAccent = Color3.fromRGB(220, 220, 220),
+    Active = Color3.fromRGB(30, 30, 30),
+    Accent = Color3.fromRGB(235, 35, 45),
+    FriendColor = Color3.fromRGB(180, 255, 190),
+    ESPColor = Color3.fromRGB(235, 35, 45),
+    LockColor = Color3.fromRGB(235, 35, 45),
+    LED_On = Color3.fromRGB(235, 35, 45),
+    LED_Off = Color3.fromRGB(55, 55, 55),
+}
+
+local currentTarget = nil
+local menuOpen = false
+local ESP_Data = {}
+local lockedTarget = nil
+
+local lockLine = Drawing.new("Line")
+lockLine.Visible = false
+lockLine.Thickness = 2
+lockLine.Color = Colors.LockColor
+lockLine.Transparency = 0.7
+
+local splashBg = Drawing.new("Square")
+splashBg.Size = Vector2.new(Camera.ViewportSize.X, Camera.ViewportSize.Y)
+splashBg.Position = Vector2.new(0, 0)
+splashBg.Color = Color3.fromRGB(10, 8, 20)
+splashBg.Filled = true
+splashBg.Visible = true
+
+local splashTitle = Drawing.new("Text")
+splashTitle.Size = 72; splashTitle.Center = true; splashTitle.Outline = true
+splashTitle.Color = Color3.fromRGB(235, 35, 45)
+splashTitle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2 - 40)
+splashTitle.Visible = true; splashTitle.Text = "THE Reych9"
+
+local splashSubtitle = Drawing.new("Text")
+splashSubtitle.Size = 24; splashSubtitle.Center = true; splashSubtitle.Outline = true
+splashSubtitle.Color = Color3.fromRGB(125, 15, 22)
+splashSubtitle.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2 + 30)
+splashSubtitle.Visible = true; splashSubtitle.Text = "EL CHAPA • THE Reych9"
+
+local splashLine = Drawing.new("Line")
+splashLine.From = Vector2.new(Camera.ViewportSize.X / 2 - 100, Camera.ViewportSize.Y / 2 + 60)
+splashLine.To = Vector2.new(Camera.ViewportSize.X / 2 + 100, Camera.ViewportSize.Y / 2 + 60)
+splashLine.Thickness = 2
+splashLine.Color = Color3.fromRGB(235, 35, 45)
+splashLine.Visible = true
+
+task.spawn(function()
+    local hue = 0
+    while splashTitle.Visible do
+        hue = (hue + 0.015) % 1
+        splashTitle.Color = Color3.fromHSV(hue * 0.3 + 0.7, 0.8, 1)
+        splashLine.Color = Color3.fromHSV(hue * 0.3 + 0.5, 0.9, 1)
+        task.wait(0.05)
+    end
+end)
+task.delay(3.5, function() splashTitle.Visible = false; splashSubtitle.Visible = false; splashLine.Visible = false; splashBg.Visible = false end)
+
+local StandardFOV = Drawing.new("Circle")
+StandardFOV.Visible = Settings.ShowFOV
+StandardFOV.Filled = false
+StandardFOV.Thickness = 2
+StandardFOV.Color = Color3.fromRGB(235, 35, 45)
+StandardFOV.Transparency = 0.9
+StandardFOV.Radius = Settings.FOV
+StandardFOV.NumSides = 60
+StandardFOV.Position = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+
+local TracerLine = Drawing.new("Line")
+TracerLine.Visible = false; TracerLine.Thickness = 1.5
+TracerLine.Color = Color3.fromRGB(125, 15, 22); TracerLine.Transparency = 0.7
+
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "TheReych9_GUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.Parent = PlayerGui
+
+local MainPanel = Instance.new("Frame")
+MainPanel.Size = UDim2.new(0, 380, 0, 480)
+MainPanel.Position = UDim2.new(0.5, -190, 0.5, -240)
+MainPanel.BackgroundColor3 = Colors.BG
+MainPanel.BackgroundTransparency = 0.05
+MainPanel.BorderSizePixel = 0
+MainPanel.Visible = false
+MainPanel.Parent = ScreenGui
+Instance.new("UICorner", MainPanel).CornerRadius = UDim.new(0, 16)
+
+local MainStroke = Instance.new("UIStroke")
+MainStroke.Color = Color3.fromRGB(235, 35, 45)
+MainStroke.Thickness = 2
+MainStroke.Parent = MainPanel
+
+local MainGradient = Instance.new("UIGradient")
+MainGradient.Color = ColorSequence.new{
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(235, 35, 45)),
+    ColorSequenceKeypoint.new(0.5, Color3.fromRGB(125, 15, 22)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(235, 35, 45))
+}
+MainGradient.Rotation = 45
+MainGradient.Parent = MainStroke
+
+task.spawn(function()
+    while true do
+        for i = 0, 1, 0.008 do
+            MainGradient.Offset = Vector2.new(i, i * 0.5)
+            task.wait(0.04)
+        end
+    end
+end)
+
+local Header = Instance.new("Frame")
+Header.Size = UDim2.new(1, 0, 0, 55)
+Header.BackgroundColor3 = Colors.BGSecondary
+Header.BorderSizePixel = 0
+Header.Parent = MainPanel
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 16)
+
+local CHAPA_IMAGE = "rbxassetid://0"
+local LogoImage = Instance.new("ImageLabel")
+LogoImage.Name = "ChapaLogo"
+LogoImage.Size = UDim2.new(0, 42, 0, 42)
+LogoImage.Position = UDim2.new(0, 8, 0.5, -21)
+LogoImage.BackgroundTransparency = 1
+LogoImage.Image = CHAPA_IMAGE
+LogoImage.ScaleType = Enum.ScaleType.Fit
+LogoImage.Parent = Header
+
+local LogoLabel = Instance.new("TextLabel")
+LogoLabel.Size = UDim2.new(1, -110, 1, 0)
+LogoLabel.Position = UDim2.new(0, 56, 0, 0)
+LogoLabel.BackgroundTransparency = 1
+LogoLabel.Text = "THE Reych9"
+LogoLabel.TextColor3 = Colors.Text
+LogoLabel.TextSize = 18
+LogoLabel.Font = Enum.Font.GothamBold
+LogoLabel.TextXAlignment = Enum.TextXAlignment.Left
+LogoLabel.Parent = Header
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0, 32, 0, 32)
+CloseBtn.Position = UDim2.new(1, -40, 0.5, -16)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 90)
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Text = "✕"
+CloseBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseBtn.TextSize = 16
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.Parent = Header
+Instance.new("UICorner", CloseBtn).CornerRadius = UDim.new(1, 0)
+
+local Tabs = Instance.new("Frame")
+Tabs.Size = UDim2.new(1, -24, 0, 40)
+Tabs.Position = UDim2.new(0, 12, 0, 60)
+Tabs.BackgroundColor3 = Colors.BGSecondary
+Tabs.ClipsDescendants = true
+Tabs.Parent = MainPanel
+Instance.new("UICorner", Tabs).CornerRadius = UDim.new(0, 12)
+
+local function createTab(name, xPos, isActive)
+    local tab = Instance.new("TextButton")
+    tab.Size = UDim2.new(0.24, 0, 1, -8)
+    tab.Position = UDim2.new(xPos, 0, 0, 4)
+    tab.BackgroundColor3 = isActive and Colors.Active or Colors.BGLight
+    tab.Text = name
+    tab.TextColor3 = isActive and Color3.fromRGB(255, 255, 255) or Colors.Text
+    tab.TextSize = 12
+    tab.Font = Enum.Font.GothamBold
+    tab.BorderSizePixel = 0
+    tab.Parent = Tabs
+    Instance.new("UICorner", tab).CornerRadius = UDim.new(0, 10)
+    return tab
+end
+
+local VisualTab = createTab("👁️ VISUAL", 0.01, true)
+local AimTab = createTab("🎯 AIMBOT", 0.26, false)
+local BloodTab = createTab("💉 BLOOD", 0.51, false)
+local ServiciosTab = createTab("🏃 MOVIMIENTO", 0.76, false)
+
+local function createFrame()
+    local f = Instance.new("ScrollingFrame")
+    f.Size = UDim2.new(1, -20, 1, -110)
+    f.Position = UDim2.new(0, 10, 0, 105)
+    f.BackgroundTransparency = 1
+    f.BorderSizePixel = 0
+    f.ScrollBarThickness = 4
+    f.ScrollBarImageColor3 = Colors.Active
+    f.CanvasSize = UDim2.new(0, 0, 0, 950)
+    f.Visible = false
+    f.Parent = MainPanel
+    Instance.new("UIListLayout", f).Padding = UDim.new(0, 8)
+    return f
+end
+
+local VisualFrame = createFrame(); VisualFrame.Visible = true; VisualFrame.CanvasSize = UDim2.new(0, 0, 0, 1150)
+local AimFrame = createFrame(); AimFrame.CanvasSize = UDim2.new(0, 0, 0, 950)
+local BloodFrame = createFrame(); BloodFrame.CanvasSize = UDim2.new(0, 0, 0, 1000)
+local ServiciosFrame = createFrame(); ServiciosFrame.CanvasSize = UDim2.new(0, 0, 0, 600)
+
+local function switchTab(activeTab, activeFrame)
+    for _, tab in ipairs({VisualTab, AimTab, BloodTab, ServiciosTab}) do
+        tab.BackgroundColor3 = (tab == activeTab) and Colors.Active or Colors.BGLight
+        tab.TextColor3 = (tab == activeTab) and Color3.fromRGB(255, 255, 255) or Colors.Text
+    end
+    for _, frame in ipairs({VisualFrame, AimFrame, BloodFrame, ServiciosFrame}) do
+        frame.Visible = (frame == activeFrame)
+    end
+end
+
+VisualTab.MouseButton1Click:Connect(function() switchTab(VisualTab, VisualFrame) end)
+AimTab.MouseButton1Click:Connect(function() switchTab(AimTab, AimFrame) end)
+BloodTab.MouseButton1Click:Connect(function() switchTab(BloodTab, BloodFrame) end)
+ServiciosTab.MouseButton1Click:Connect(function() switchTab(ServiciosTab, ServiciosFrame) end)
+
+local panelDragging, panelDragStart, panelStartPos = false, nil, nil
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        panelDragging = true; panelDragStart = input.Position; panelStartPos = MainPanel.Position
+    end
+end)
+Header.InputChanged:Connect(function(input)
+    if panelDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputState == Enum.UserInputState.Change then
+            local delta = input.Position - panelDragStart
+            MainPanel.Position = UDim2.new(panelStartPos.X.Scale, panelStartPos.X.Offset + delta.X, panelStartPos.Y.Scale, panelStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+Header.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then panelDragging = false end
+end)
+
+local CircleButton = Instance.new("Frame")
+CircleButton.Size = UDim2.new(0, 64, 0, 64)
+CircleButton.Position = UDim2.new(0, 20, 0.5, -32)
+CircleButton.BackgroundColor3 = Colors.BGSecondary
+CircleButton.BorderSizePixel = 0
+CircleButton.Parent = ScreenGui
+Instance.new("UICorner", CircleButton).CornerRadius = UDim.new(0, 16)
+local CircleStroke = Instance.new("UIStroke"); CircleStroke.Color = Colors.Active; CircleStroke.Thickness = 2.5; CircleStroke.Parent = CircleButton
+local CircleGradient = Instance.new("UIGradient")
+CircleGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0, Color3.fromRGB(235, 35, 45)), ColorSequenceKeypoint.new(1, Color3.fromRGB(125, 15, 22))}
+CircleGradient.Rotation = 135; CircleGradient.Parent = CircleStroke
+
+local CircleIcon = Instance.new("ImageLabel")
+CircleIcon.Name = "ChapaOpenCloseImage"
+CircleIcon.Size = UDim2.new(1, -8, 1, -8)
+CircleIcon.Position = UDim2.new(0, 4, 0, 4)
+CircleIcon.BackgroundTransparency = 1
+CircleIcon.Image = CHAPA_IMAGE
+CircleIcon.ScaleType = Enum.ScaleType.Crop
+CircleIcon.Parent = CircleButton
+Instance.new("UICorner", CircleIcon).CornerRadius = UDim.new(1, 0)
+
+local circleDragging, circleDragStart, circleStartPos, circleClickTime = false, nil, nil, 0
+CircleButton.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        circleDragging = true; circleClickTime = tick(); circleDragStart = input.Position; circleStartPos = CircleButton.Position
+    end
+end)
+CircleButton.InputChanged:Connect(function(input)
+    if circleDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputState == Enum.UserInputState.Change then
+            local delta = input.Position - circleDragStart
+            CircleButton.Position = UDim2.new(circleStartPos.X.Scale, circleStartPos.X.Offset + delta.X, circleStartPos.Y.Scale, circleStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+CircleButton.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        circleDragging = false
+        if tick() - circleClickTime < 0.25 then menuOpen = not menuOpen; MainPanel.Visible = menuOpen end
+    end
+end)
+
+local MobileAimBtn = Instance.new("TextButton")
+MobileAimBtn.Size = UDim2.new(0, 70, 0, 70)
+MobileAimBtn.Position = UDim2.new(1, -90, 1, -190)
+MobileAimBtn.BackgroundColor3 = Colors.BGSecondary
+MobileAimBtn.BackgroundTransparency = 0.15
+MobileAimBtn.BorderSizePixel = 0
+MobileAimBtn.Text = "OFF"
+MobileAimBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+MobileAimBtn.TextSize = 16
+MobileAimBtn.Font = Enum.Font.GothamBold
+MobileAimBtn.Parent = ScreenGui
+Instance.new("UICorner", MobileAimBtn).CornerRadius = UDim.new(0, 20)
+local MobileBtnStroke = Instance.new("UIStroke"); MobileBtnStroke.Color = Colors.LED_Off; MobileBtnStroke.Thickness = 2.5; MobileBtnStroke.Parent = MobileAimBtn
+
+local function UpdateMobileBtnVisuals()
+    if Settings.AimbotActive then
+        MobileAimBtn.BackgroundColor3 = Color3.fromRGB(40, 25, 70)
+        MobileBtnStroke.Color = Colors.LED_On
+        MobileAimBtn.Text = "ON"
+        MobileAimBtn.TextColor3 = Colors.FriendColor
+        MobileAimBtn.BackgroundTransparency = 0.05
+    else
+        MobileAimBtn.BackgroundColor3 = Colors.BGSecondary
+        MobileBtnStroke.Color = Colors.LED_Off
+        MobileAimBtn.Text = "OFF"
+        MobileAimBtn.TextColor3 = Color3.fromRGB(180, 180, 180)
+        MobileAimBtn.BackgroundTransparency = 0.25
+    end
+end
+
+local mobileBtnDragging, mobileBtnDragStart, mobileBtnStartPos = false, nil, nil
+MobileAimBtn.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        mobileBtnDragging = true; mobileBtnDragStart = input.Position; mobileBtnStartPos = MobileAimBtn.Position
+    end
+end)
+MobileAimBtn.InputChanged:Connect(function(input)
+    if mobileBtnDragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        if input.UserInputState == Enum.UserInputState.Change then
+            local delta = input.Position - mobileBtnDragStart
+            MobileAimBtn.Position = UDim2.new(mobileBtnStartPos.X.Scale, mobileBtnStartPos.X.Offset + delta.X, mobileBtnStartPos.Y.Scale, mobileBtnStartPos.Y.Offset + delta.Y)
+        end
+    end
+end)
+
+MobileAimBtn.MouseButton1Click:Connect(function()
+    if not Settings.AimbotEnabled then
+        Settings.AimbotEnabled = true
+    end
+
+    Settings.AimbotActive = not Settings.AimbotActive
+
+    if Settings.Aimb
