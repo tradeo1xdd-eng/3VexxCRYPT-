@@ -1,0 +1,145 @@
+-- THE Reych9 | Interfaz visual con El Chapa
+-- UI únicamente: no incluye aimbot, ESP, manipulación de remotos ni trampas.
+-- Sube la imagen de El Chapa a Roblox y reemplaza CHAPA_IMAGE_ID con su asset ID.
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local player = Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+local CHAPA_IMAGE_ID = "rbxassetid://0" -- reemplazar por el ID real de la imagen subida a Roblox
+
+local old = playerGui:FindFirstChild("TheReych9_GUI")
+if old then old:Destroy() end
+local gui = Instance.new("ScreenGui")
+gui.Name = "TheReych9_GUI"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+
+local function corner(obj, radius)
+    local c = Instance.new("UICorner")
+    c.CornerRadius = UDim.new(0, radius)
+    c.Parent = obj
+end
+local function stroke(obj, color, thickness)
+    local s = Instance.new("UIStroke")
+    s.Color = color
+    s.Thickness = thickness
+    s.Parent = obj
+end
+local red = Color3.fromRGB(235, 35, 45)
+local dark = Color3.fromRGB(15, 15, 18)
+local panelDark = Color3.fromRGB(25, 25, 30)
+local white = Color3.fromRGB(245, 245, 245)
+
+local panel = Instance.new("Frame")
+panel.Name = "MainPanel"
+panel.Size = UDim2.new(0, 380, 0, 560)
+panel.Position = UDim2.new(0.5, -190, 0.5, -280)
+panel.BackgroundColor3 = dark
+panel.BorderSizePixel = 0
+panel.Visible = false
+panel.Parent = gui
+corner(panel, 16); stroke(panel, red, 2)
+
+local header = Instance.new("TextLabel")
+header.Size = UDim2.new(1, -54, 0, 48)
+header.Position = UDim2.new(0, 14, 0, 0)
+header.BackgroundTransparency = 1
+header.Text = "THE Reych9"
+header.TextColor3 = white
+header.TextSize = 19
+header.Font = Enum.Font.GothamBold
+header.TextXAlignment = Enum.TextXAlignment.Left
+header.Parent = panel
+
+local close = Instance.new("TextButton")
+close.Size = UDim2.new(0, 32, 0, 32)
+close.Position = UDim2.new(1, -42, 0, 8)
+close.BackgroundColor3 = red
+close.Text = "X"; close.TextColor3 = white; close.Font = Enum.Font.GothamBold; close.TextSize = 15
+close.Parent = panel; corner(close, 10)
+close.MouseButton1Click:Connect(function() panel.Visible = false end)
+
+local banner = Instance.new("ImageLabel")
+banner.Name = "ElChapaBanner"
+banner.Size = UDim2.new(1, -24, 0, 100)
+banner.Position = UDim2.new(0, 12, 0, 50)
+banner.BackgroundColor3 = panelDark
+banner.BorderSizePixel = 0
+banner.Image = CHAPA_IMAGE_ID
+banner.ScaleType = Enum.ScaleType.Crop
+banner.Parent = panel; corner(banner, 10); stroke(banner, red, 1.5)
+local caption = Instance.new("TextLabel")
+caption.Size = UDim2.new(1, -12, 0, 24)
+caption.Position = UDim2.new(0, 6, 1, -29)
+caption.BackgroundColor3 = dark; caption.BackgroundTransparency = 0.2
+caption.Text = "EL CHAPA  •  THE Reych9"; caption.TextColor3 = white
+caption.Font = Enum.Font.GothamBold; caption.TextSize = 13
+caption.Parent = banner; corner(caption, 6)
+
+local tabs = Instance.new("Frame")
+tabs.Size = UDim2.new(1, -24, 0, 38)
+tabs.Position = UDim2.new(0, 12, 0, 160)
+tabs.BackgroundColor3 = panelDark; tabs.BorderSizePixel = 0
+tabs.Parent = panel; corner(tabs, 10)
+local content = Instance.new("Frame")
+content.Size = UDim2.new(1, -24, 1, -212)
+content.Position = UDim2.new(0, 12, 0, 208)
+content.BackgroundColor3 = panelDark; content.BorderSizePixel = 0
+content.Parent = panel; corner(content, 10)
+local contentText = Instance.new("TextLabel")
+contentText.Size = UDim2.new(1, -24, 1, -24)
+contentText.Position = UDim2.new(0, 12, 0, 12)
+contentText.BackgroundTransparency = 1
+contentText.TextColor3 = white; contentText.TextSize = 15
+contentText.Font = Enum.Font.GothamMedium; contentText.TextWrapped = true
+contentText.TextYAlignment = Enum.TextYAlignment.Top
+contentText.Parent = content
+
+local names = {"VISUAL", "AIMBOT", "BLOOD", "MOVIMIENTO"}
+local descriptions = {
+    "VISUAL\nPanel de opciones visuales. Añade aquí controles permitidos de tu propio juego.",
+    "AIMBOT\nPestaña de interfaz solamente; no incluye apuntado automático ni ventajas contra otros jugadores.",
+    "BLOOD\nEspacio para ajustes de salud o mecánicas propias de tu experiencia.",
+    "MOVIMIENTO\nEspacio para controles de movimiento permitidos por tu propio juego."
+}
+local tabButtons = {}
+for i, name in ipairs(names) do
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0.25, -4, 1, -6)
+    b.Position = UDim2.new((i-1)*0.25, 3, 0, 3)
+    b.BackgroundColor3 = i == 1 and red or dark
+    b.Text = name; b.TextColor3 = white; b.TextSize = 10
+    b.Font = Enum.Font.GothamBold; b.BorderSizePixel = 0
+    b.Parent = tabs; corner(b, 8); tabButtons[i] = b
+    b.MouseButton1Click:Connect(function()
+        for j, other in ipairs(tabButtons) do other.BackgroundColor3 = j == i and red or dark end
+        contentText.Text = descriptions[i]
+    end)
+end
+contentText.Text = descriptions[1]
+
+local floating = Instance.new("ImageButton")
+floating.Name = "ElChapaOpenButton"
+floating.Size = UDim2.new(0, 64, 0, 64)
+floating.Position = UDim2.new(0, 18, 0.5, -32)
+floating.BackgroundColor3 = dark; floating.BorderSizePixel = 0
+floating.Image = CHAPA_IMAGE_ID; floating.ScaleType = Enum.ScaleType.Crop
+floating.Parent = gui; corner(floating, 14); stroke(floating, red, 2.5)
+floating.MouseButton1Click:Connect(function() panel.Visible = not panel.Visible end)
+
+-- Arrastrar el botón flotante en pantalla táctil o con ratón.
+local dragging, dragStart, startPos
+floating.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true; dragStart = input.Position; startPos = floating.Position
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        floating.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then dragging = false end
+end)
